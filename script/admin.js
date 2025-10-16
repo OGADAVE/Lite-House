@@ -1,8 +1,10 @@
 // script/admin.js
+
+// 🛑 REMOVED: import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, doc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAYpJh4hLwrXsFpKnnXi1e6wVstgitv5L0",
@@ -16,10 +18,42 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const functions = getFunctions(app);
 
-// Reference the secure server function by name
-const runManualROI = httpsCallable(functions, 'runManualROI'); 
+// ----------------------------------------------------
+// 🛑 NETLIFY FUNCTION ENDPOINTS (NEW FETCH IMPLEMENTATION)
+// ----------------------------------------------------
+const netlifyFunctionUrl = (name) => `/.netlify/functions/${name}`;
+
+// Your backend files are: dailyRoi, adminDeposit, approveWithdrawal, rejectWithdrawal, adminSendMessage
+const runManualROI_URL = netlifyFunctionUrl('dailyRoi'); 
+const adminDeposit_URL = netlifyFunctionUrl('adminDeposit');
+const approveWithdrawal_URL = netlifyFunctionUrl('approveWithdrawal');
+const rejectWithdrawal_URL = netlifyFunctionUrl('rejectWithdrawal');
+const adminSendMessage_URL = netlifyFunctionUrl('adminSendMessage');
+
+/**
+ * Executes a standard POST request to a Netlify Function.
+ * @param {string} url - The Netlify function URL.
+ * @param {object} payload - The data to send in the request body.
+ * @returns {object} The JSON result from the function.
+ */
+async function callNetlifyFunction(url, payload = {}) {
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+    
+    if (!response.ok) {
+        // Netlify functions return status 200 even on some errors, 
+        // but this handles explicit non-200 responses and checks the message.
+        throw new Error(result.message || result.error || "Netlify Function Error");
+    }
+    return result;
+}
+
 
 document.getElementById("runRoiBtn").addEventListener("click", async () => {
     if (!confirm("Run daily ROI update for all users?")) return;
@@ -30,12 +64,11 @@ document.getElementById("runRoiBtn").addEventListener("click", async () => {
     btn.textContent = "Processing...";
 
     try {
-        // Call the secure Cloud Function
-        const result = await runManualROI();
-        alert(result.data.message);
+        // 🛑 FIX: Call the secure Netlify Function via fetch
+        const result = await callNetlifyFunction(runManualROI_URL);
+        alert(result.message);
     } catch (error) {
         console.error("ROI Update failed:", error);
-        // HttpsError allows checking for 'permission-denied' from Step 1
         alert("Error: " + error.message);
     } finally {
         // Reset button state
@@ -44,16 +77,9 @@ document.getElementById("runRoiBtn").addEventListener("click", async () => {
     }
 });
 
-// ----------------------------------------------------
-// 🛑 SECURE CLOUD FUNCTION CALLS
-// ----------------------------------------------------
-const adminDeposit = httpsCallable(functions, 'adminDeposit');
-const approveWithdrawal = httpsCallable(functions, 'approveWithdrawal');
-const rejectWithdrawal = httpsCallable(functions, 'rejectWithdrawal');
-const adminSendMessage = httpsCallable(functions, 'adminSendMessage');
 
 // ----------------------------------------------------
-// DOM ELEMENTS & State
+// DOM ELEMENTS & State (No changes needed here)
 // ----------------------------------------------------
 const usersTableBody = document.querySelector("#usersTable tbody");
 const withdrawalsTableBody = document.querySelector("#withdrawalsTable tbody");
@@ -95,7 +121,7 @@ let messageUserId = null;
 let depositUserEmail = null; 
 
 // ----------------------------------------------------
-// UTILITIES
+// UTILITIES (No changes needed here)
 // ----------------------------------------------------
 function showLoading(msg="Loading..."){ loadingText.textContent=msg; loadingOverlay.style.display="flex"; }
 function hideLoading(){ loadingOverlay.style.display="none"; }
@@ -103,7 +129,7 @@ function showSuccess(msg){ successMsg.textContent=msg; successMsg.style.display=
 function showError(msg){ alert(`Error: ${msg}`); }
 
 // ----------------------------------------------------
-// AUTH AND INITIAL LOAD
+// AUTH AND INITIAL LOAD (No changes needed here)
 // ----------------------------------------------------
 onAuthStateChanged(auth, async user=>{
     if(!user){ window.location.href="login.html"; return; }
@@ -132,7 +158,7 @@ const notifDropdown = document.getElementById("notifDropdown");
 notifBell.addEventListener("click",()=>notifDropdown.classList.toggle("active"));
 
 // ----------------------------------------------------
-// REAL-TIME DATA LOADERS
+// REAL-TIME DATA LOADERS (No changes needed here)
 // ----------------------------------------------------
 
 function loadUsers(){
@@ -232,7 +258,7 @@ function loadDeposits(){
             const tr=document.createElement("tr");
             tr.innerHTML = `
                 <td>${d.email}</td>
-                <td>$${(d.amount||0).toFixed(2)}</td>  
+                <td>$${(d.amount||0).toFixed(2)}</td>  
                 <td>${d.processedAt?.toDate ? d.processedAt.toDate().toLocaleString() : "-"}</td>
             `;
             depositTableBody.appendChild(tr);
@@ -261,33 +287,39 @@ function loadNotifications(){
 // MODAL & ACTION HANDLERS
 // ----------------------------------------------------
 
-// 1. Withdrawal Confirmation Handler
+// 1. Withdrawal Confirmation Handler (No changes needed here)
 function confirmAction(action, id, amount = 0, userId = null){
     selectedWithdrawal = { action, id, amount: parseFloat(amount), userId };
     confirmMsg.textContent=`Are you sure you want to ${action} this withdrawal of $${amount}?`;
     confirmModal.style.display="flex";
 }
 
-// 2. Withdrawal Action Submission (calls secure Cloud Function)
+// 2. Withdrawal Action Submission (calls secure Netlify Function)
 confirmYes.addEventListener("click", async ()=>{
     confirmModal.style.display="none";
     if(!selectedWithdrawal) return;
 
     showLoading(`${selectedWithdrawal.action}ing withdrawal...`);
     try{
+        let url, payload;
+        
         if(selectedWithdrawal.action === "approve"){
-            const res = await approveWithdrawal({
+            url = approveWithdrawal_URL;
+            payload = { 
                 withdrawalId: selectedWithdrawal.id,
                 userId: selectedWithdrawal.userId,
                 amount: selectedWithdrawal.amount
-            });
-            showSuccess(res.data.message || `Withdrawal approved successfully!`);
+            };
         } else if(selectedWithdrawal.action === "reject"){
-            const res = await rejectWithdrawal({
-                withdrawalId: selectedWithdrawal.id
-            });
-            showSuccess(res.data.message || `Withdrawal rejected successfully!`);
+            url = rejectWithdrawal_URL;
+            payload = { withdrawalId: selectedWithdrawal.id };
         }
+        
+        // 🛑 FIX: Use standard fetch utility
+        const res = await callNetlifyFunction(url, payload);
+
+        showSuccess(res.message || `Withdrawal ${selectedWithdrawal.action}ed successfully!`);
+
     }catch(err){ 
         console.error("Function Error:", err); 
         showError(err.message || "Something went wrong during the action."); 
@@ -297,7 +329,7 @@ confirmYes.addEventListener("click", async ()=>{
 
 confirmNo.addEventListener("click", ()=>{ selectedWithdrawal=null; confirmModal.style.display="none"; });
 
-// 3. Deposit Action Submission (calls secure Cloud Function)
+// 3. Deposit Action Submission (calls secure Netlify Function)
 depositYes.addEventListener("click", async ()=>{
     const amt=parseFloat(depositAmountInput.value);
     if(isNaN(amt)||amt<=0){ showError("Enter a valid positive amount."); return; }
@@ -306,12 +338,16 @@ depositYes.addEventListener("click", async ()=>{
     showLoading(`Depositing $${amt} to ${depositUserEmail}...`);
 
     try{
-        const res = await adminDeposit({
+        const payload = {
             userId: depositUserId,
             amount: amt,
-            email: depositUserEmail // Pass email for logging/notification on backend
-        });
-        showSuccess(res.data.message || `Deposited $${amt} successfully!`);
+            email: depositUserEmail
+        };
+
+        // 🛑 FIX: Use standard fetch utility
+        const res = await callNetlifyFunction(adminDeposit_URL, payload);
+
+        showSuccess(res.message || `Deposited $${amt} successfully!`);
     }catch(err){ 
         console.error("Function Error:", err); 
         showError(err.message || "Failed to process deposit."); 
@@ -321,7 +357,7 @@ depositYes.addEventListener("click", async ()=>{
 
 depositNo.addEventListener("click",()=>{ depositUserId=null; depositUserEmail=null; depositModal.style.display="none"; });
 
-// 4. Send Message Handler (calls secure Cloud Function)
+// 4. Send Message Handler (calls secure Netlify Function)
 sendMsgBtn.addEventListener("click",async()=>{
     if(!messageUserId) return;
     const subject=msgSubject.value.trim();
@@ -330,12 +366,16 @@ sendMsgBtn.addEventListener("click",async()=>{
     
     showLoading("Sending message...");
     try{
-        const res = await adminSendMessage({
+        const payload = {
             to: messageUserId,
             subject,
             message: body
-        });
-        showSuccess(res.data.message || "Message sent successfully!");
+        };
+
+        // 🛑 FIX: Use standard fetch utility
+        const res = await callNetlifyFunction(adminSendMessage_URL, payload);
+
+        showSuccess(res.message || "Message sent successfully!");
     }catch(err){ 
         console.error("Function Error:", err); 
         showError(err.message || "Failed to send message."); 
@@ -344,4 +384,3 @@ sendMsgBtn.addEventListener("click",async()=>{
 });
 
 cancelMsgBtn.addEventListener("click",()=>{ messageUserId=null; messageModal.style.display="none"; });
-
