@@ -1,12 +1,12 @@
 // script/admin.js
 
+// 🛑 REMOVED: import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-// We still need getFirestore, collection, doc, getDoc for the admin check
-import { getFirestore, collection, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"; 
+import { getFirestore, collection, doc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-    // Your actual configuration details
     apiKey: "AIzaSyAYpJh4hLwrXsFpKnnXi1e6wVstgitv5L0",
     authDomain: "lite-house-b2139.firebaseapp.com",
     projectId: "lite-house-b2139",
@@ -17,25 +17,25 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app); // Used only for admin check
+const db = getFirestore(app);
 
 // ----------------------------------------------------
-// 🛑 NETLIFY FUNCTION ENDPOINTS & UTILITY
+// 🛑 NETLIFY FUNCTION ENDPOINTS (NEW FETCH IMPLEMENTATION)
 // ----------------------------------------------------
 const netlifyFunctionUrl = (name) => `/.netlify/functions/${name}`;
 
-// Admin Actions (POST requests with payload)
+// Your backend files are: dailyRoi, adminDeposit, approveWithdrawal, rejectWithdrawal, adminSendMessage
 const runManualROI_URL = netlifyFunctionUrl('dailyRoi'); 
 const adminDeposit_URL = netlifyFunctionUrl('adminDeposit');
 const approveWithdrawal_URL = netlifyFunctionUrl('approveWithdrawal');
 const rejectWithdrawal_URL = netlifyFunctionUrl('rejectWithdrawal');
 const adminSendMessage_URL = netlifyFunctionUrl('adminSendMessage');
 
-// Data Fetching (GET or POST request to retrieve dashboard data)
-const fetchAdminData_URL = netlifyFunctionUrl('fetchAdminData');
-
 /**
- * Utility function to handle POST requests to Netlify Functions.
+ * Executes a standard POST request to a Netlify Function.
+ * @param {string} url - The Netlify function URL.
+ * @param {object} payload - The data to send in the request body.
+ * @returns {object} The JSON result from the function.
  */
 async function callNetlifyFunction(url, payload = {}) {
     const response = await fetch(url, {
@@ -46,29 +46,32 @@ async function callNetlifyFunction(url, payload = {}) {
 
     const result = await response.json();
     
-    if (!response.ok || result.error) {
+    if (!response.ok) {
+        // Netlify functions return status 200 even on some errors, 
+        // but this handles explicit non-200 responses and checks the message.
         throw new Error(result.message || result.error || "Netlify Function Error");
     }
     return result;
 }
 
-// ----------------------------------------------------
-// ROI BUTTON HANDLER (Uses callNetlifyFunction)
-// ----------------------------------------------------
+
 document.getElementById("runRoiBtn").addEventListener("click", async () => {
     if (!confirm("Run daily ROI update for all users?")) return;
 
+    // Show loading state
     const btn = document.getElementById("runRoiBtn");
     btn.disabled = true;
     btn.textContent = "Processing...";
 
     try {
+        // 🛑 FIX: Call the secure Netlify Function via fetch
         const result = await callNetlifyFunction(runManualROI_URL);
         alert(result.message);
     } catch (error) {
         console.error("ROI Update failed:", error);
         alert("Error: " + error.message);
     } finally {
+        // Reset button state
         btn.disabled = false;
         btn.textContent = "Run Daily ROI Update";
     }
@@ -76,7 +79,7 @@ document.getElementById("runRoiBtn").addEventListener("click", async () => {
 
 
 // ----------------------------------------------------
-// DOM ELEMENTS & State 
+// DOM ELEMENTS & State (No changes needed here)
 // ----------------------------------------------------
 const usersTableBody = document.querySelector("#usersTable tbody");
 const withdrawalsTableBody = document.querySelector("#withdrawalsTable tbody");
@@ -86,23 +89,25 @@ const totalUsersEl = document.getElementById("totalUsers");
 const totalDepositsEl = document.getElementById("totalDeposits");
 const totalBalanceEl = document.getElementById("totalBalance");
 const pendingWithdrawalsEl = document.getElementById("pendingWithdrawals");
-const notifBadge = document.getElementById("notifBadge"); // Assume you have a badge element
 
 const loadingOverlay = document.getElementById("loading-overlay");
 const loadingText = document.getElementById("loading-text");
 const successMsg = document.getElementById("success-msg");
 
+// Confirm Modal (for Withdrawal actions)
 const confirmModal = document.getElementById("confirm-modal");
 const confirmMsg = document.getElementById("confirm-msg");
 const confirmYes = document.getElementById("confirm-yes");
 const confirmNo = document.getElementById("confirm-no");
 
+// Deposit Modal (NEW)
 const depositModal = document.getElementById("deposit-modal");
 const depositMsg = document.getElementById("deposit-msg");
 const depositAmountInput = document.getElementById("deposit-amount-input");
 const depositYes = document.getElementById("deposit-yes");
 const depositNo = document.getElementById("deposit-no");
 
+// Message Modal
 const messageModal = document.getElementById("message-modal");
 const messageTo = document.getElementById("message-to");
 const msgSubject = document.getElementById("msg-subject");
@@ -116,7 +121,7 @@ let messageUserId = null;
 let depositUserEmail = null; 
 
 // ----------------------------------------------------
-// UTILITIES 
+// UTILITIES (No changes needed here)
 // ----------------------------------------------------
 function showLoading(msg="Loading..."){ loadingText.textContent=msg; loadingOverlay.style.display="flex"; }
 function hideLoading(){ loadingOverlay.style.display="none"; }
@@ -124,152 +129,10 @@ function showSuccess(msg){ successMsg.textContent=msg; successMsg.style.display=
 function showError(msg){ alert(`Error: ${msg}`); }
 
 // ----------------------------------------------------
-// RENDERING FUNCTIONS (To display data fetched from backend)
-// ----------------------------------------------------
-
-function renderUsers(users) {
-    usersTableBody.innerHTML = "";
-    let totalUsers = 0, totalBalance = 0;
-    
-    users.forEach(u => {
-        totalUsers++;
-        totalBalance += u.accountBalance || 0;
-        
-        const joinedDate = u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "-";
-
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-            <td>${u.email}</td>
-            <td>$${(u.accountBalance||0).toFixed(2)}</td>
-            <td>$${(u.tradingBalance||0).toFixed(2)}</td>
-            <td>$${(u.dailyRoiBalance||0).toFixed(2)}</td>
-            <td>${u.referralCode || "-"}</td>
-            <td>${joinedDate}</td>
-            <td>
-                <button class="deposit-btn">Deposit</button>
-                <button class="msg-btn">Message</button>
-            </td>`;
-        usersTableBody.appendChild(tr);
-
-        tr.querySelector(".deposit-btn").addEventListener("click", ()=>{
-            depositUserId = u.id; 
-            depositUserEmail = u.email;
-            depositMsg.textContent=`Deposit amount to ${depositUserEmail}?`;
-            depositAmountInput.value="";
-            depositModal.style.display="flex";
-        });
-
-        tr.querySelector(".msg-btn").addEventListener("click", ()=>{
-            messageUserId = u.id; 
-            messageTo.textContent = `To: ${u.email}`;
-            msgSubject.value = "";
-            msgBody.value = "";
-            messageModal.style.display = "flex";
-        });
-    });
-    totalUsersEl.textContent = totalUsers;
-    totalBalanceEl.textContent = "$" + totalBalance.toFixed(2);
-}
-
-function renderWithdrawals(withdrawals) {
-    withdrawalsTableBody.innerHTML = "";
-    let pendingCount = 0;
-    
-    withdrawals.forEach(w => {
-        if(w.status==="pending") pendingCount++;
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-            <td>${w.email}</td>
-            <td>${w.coin}</td>
-            <td>$${w.amount}</td>
-            <td>${w.status}</td>
-            <td>
-                ${w.status==="pending"?`
-                    <button class="action-btn approve" data-id="${w.id}" data-user="${w.userId}" data-amount="${w.amount}">Approve</button>
-                    <button class="action-btn reject" data-id="${w.id}">Reject</button>
-                `:"-"}
-            </td>
-        `;
-        withdrawalsTableBody.appendChild(tr);
-        
-        if(w.status==="pending"){
-            tr.querySelector(".approve").addEventListener("click", (e)=>{
-                const { id, user, amount } = e.target.dataset;
-                confirmAction("approve", id, amount, user);
-            });
-            tr.querySelector(".reject").addEventListener("click", (e)=>{
-                const { id } = e.target.dataset;
-                confirmAction("reject", id);
-            });
-        }
-    });
-    pendingWithdrawalsEl.textContent = pendingCount;
-}
-
-function renderDeposits(deposits) {
-    depositTableBody.innerHTML = "";
-    let totalDeposits = 0;
-    
-    deposits.forEach(d => {
-        totalDeposits += d.amount || 0;
-        
-        const processedDate = d.processedAt ? new Date(d.processedAt).toLocaleString() : "-";
-
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-            <td>${d.email}</td>
-            <td>$${(d.amount||0).toFixed(2)}</td>  
-            <td>${processedDate}</td>
-        `;
-        depositTableBody.appendChild(tr);
-    });
-    totalDepositsEl.textContent = "$" + totalDeposits.toFixed(2);
-}
-
-function renderNotifications(notifications) {
-    const notifDropdown = document.getElementById("notifDropdown");
-    notifDropdown.innerHTML = "";
-    notifBadge.textContent = notifications.length; 
-    
-    notifications.forEach(n => {
-        const div = document.createElement("div");
-        div.className = "notif-item";
-        div.textContent = `${n.message||"New event"} (${n.type})`;
-        notifDropdown.appendChild(div);
-    });
-}
-
-// ----------------------------------------------------
-// DATA LOADER
-// ----------------------------------------------------
-
-async function loadAdminData() {
-    showLoading("Loading admin data securely...");
-    try {
-        // 🛑 FIX: Call Netlify Function to get all secure data
-        const data = await callNetlifyFunction(fetchAdminData_URL);
-
-        // Render all data from the secure backend response
-        renderUsers(data.users || []);
-        renderWithdrawals(data.withdrawals || []);
-        renderDeposits(data.deposits || []);
-        renderNotifications(data.notifications || []); 
-
-    } catch (err) {
-        showError("Failed to load dashboard data securely. Check Netlify function logs. Error: " + err.message);
-    } finally {
-        hideLoading();
-    }
-}
-
-
-// ----------------------------------------------------
-// AUTH AND INITIAL LOAD
+// AUTH AND INITIAL LOAD (No changes needed here)
 // ----------------------------------------------------
 onAuthStateChanged(auth, async user=>{
     if(!user){ window.location.href="login.html"; return; }
-    
-    // Perform the initial Admin check using the client-side SDK (secure enough for a redirect check)
     const uRef = doc(db,"users",user.uid);
     const uSnap = await getDoc(uRef);
     
@@ -282,7 +145,10 @@ onAuthStateChanged(auth, async user=>{
     }
     
     // Load data after successful admin check
-    loadAdminData(); // <-- NEW CALL that fetches data via the secure Netlify Function
+    loadUsers();
+    loadWithdrawals();
+    loadDeposits();
+    loadNotifications(); 
 });
 
 document.getElementById("logoutBtn").addEventListener("click", async ()=>{ await signOut(auth); window.location.href="login.html"; });
@@ -291,17 +157,144 @@ const notifBell = document.getElementById("notifBell");
 const notifDropdown = document.getElementById("notifDropdown");
 notifBell.addEventListener("click",()=>notifDropdown.classList.toggle("active"));
 
+// ----------------------------------------------------
+// REAL-TIME DATA LOADERS (No changes needed here)
+// ----------------------------------------------------
+
+function loadUsers(){
+    showLoading("Loading users...");
+    onSnapshot(collection(db,"users"), snapshot=>{
+        usersTableBody.innerHTML="";
+        let totalUsers = 0, totalBalance = 0;
+        snapshot.forEach(docSnap=>{
+            const u = docSnap.data();
+            totalUsers++;
+            // Note: Total balance sums the accountBalance field (safer assumption)
+            totalBalance += u.accountBalance || 0; 
+            
+            const tr = document.createElement("tr");
+            tr.innerHTML=`
+                <td>${u.email}</td>
+                <td>$${(u.accountBalance||0).toFixed(2)}</td>
+                <td>$${(u.tradingBalance||0).toFixed(2)}</td>
+                <td>$${(u.dailyRoiBalance||0).toFixed(2)}</td>
+                <td>${u.referralCode || "-"}</td>
+                <td>${u.createdAt?.toDate ? u.createdAt.toDate().toLocaleDateString() : "-"}</td>
+                <td>
+                    <button class="deposit-btn">Deposit</button>
+                    <button class="msg-btn">Message</button>
+                </td>`;
+            usersTableBody.appendChild(tr);
+
+            // Deposit button listener (opens NEW modal)
+            tr.querySelector(".deposit-btn").addEventListener("click", ()=>{
+                depositUserId = docSnap.id;
+                depositUserEmail = u.email;
+                depositMsg.textContent=`Deposit amount to ${depositUserEmail}?`;
+                depositAmountInput.value="";
+                depositModal.style.display="flex";
+            });
+
+            // Message button listener
+            tr.querySelector(".msg-btn").addEventListener("click", ()=>{
+                messageUserId = docSnap.id;
+                messageTo.textContent = `To: ${u.email}`;
+                msgSubject.value = "";
+                msgBody.value = "";
+                messageModal.style.display = "flex";
+            });
+        });
+        totalUsersEl.textContent = totalUsers;
+        totalBalanceEl.textContent = "$" + totalBalance.toFixed(2);
+        hideLoading();
+    });
+}
+
+function loadWithdrawals(){
+    onSnapshot(collection(db,"withdrawals"), snapshot=>{
+        withdrawalsTableBody.innerHTML="";
+        let pendingCount = 0;
+        snapshot.forEach(docSnap=>{
+            const w=docSnap.data();
+            if(w.status==="pending") pendingCount++;
+            const tr=document.createElement("tr");
+            tr.innerHTML=`
+                <td>${w.email}</td>
+                <td>${w.coin}</td>
+                <td>$${w.amount}</td>
+                <td>${w.status}</td>
+                <td>
+                    ${w.status==="pending"?`
+                        <button class="action-btn approve" data-id="${docSnap.id}" data-user="${w.userId}" data-amount="${w.amount}">Approve</button>
+                        <button class="action-btn reject" data-id="${docSnap.id}">Reject</button>
+                    `:"-"}
+                </td>
+            `;
+            withdrawalsTableBody.appendChild(tr);
+            
+            if(w.status==="pending"){
+                tr.querySelector(".approve").addEventListener("click", (e)=>{
+                    const { id, user, amount } = e.target.dataset;
+                    confirmAction("approve", id, amount, user);
+                });
+                tr.querySelector(".reject").addEventListener("click", (e)=>{
+                    const { id } = e.target.dataset;
+                    confirmAction("reject", id);
+                });
+            }
+        });
+        pendingWithdrawalsEl.textContent = pendingCount;
+    });
+}
+
+function loadDeposits(){
+    // Note: Since this is an admin view, it tracks "total deposits" processed by the admin/system
+    onSnapshot(collection(db,"deposits"), snapshot=>{
+        depositTableBody.innerHTML="";
+        let totalDeposits = 0;
+        snapshot.forEach(docSnap=>{
+            const d = docSnap.data();
+            totalDeposits += d.amount || 0;
+            const tr=document.createElement("tr");
+            tr.innerHTML = `
+                <td>${d.email}</td>
+                <td>$${(d.amount||0).toFixed(2)}</td>  
+                <td>${d.processedAt?.toDate ? d.processedAt.toDate().toLocaleString() : "-"}</td>
+            `;
+            depositTableBody.appendChild(tr);
+        });
+        totalDepositsEl.textContent = "$" + totalDeposits.toFixed(2);
+    });
+}
+
+function loadNotifications(){
+    // Simplified: Show all notifications for now
+    onSnapshot(collection(db,"notifications"),snapshot=>{
+        notifDropdown.innerHTML="";
+        // Only count unread notifications if you track read status
+        notifBadge.textContent=snapshot.size; 
+        snapshot.forEach(docSnap=>{
+            const n=docSnap.data();
+            const div=document.createElement("div");
+            div.className="notif-item";
+            div.textContent=`${n.message||"New event"} (${n.type})`;
+            notifDropdown.appendChild(div);
+        });
+    });
+}
 
 // ----------------------------------------------------
-// MODAL & ACTION HANDLERS (Unchanged, use callNetlifyFunction)
+// MODAL & ACTION HANDLERS
 // ----------------------------------------------------
 
+// 1. Withdrawal Confirmation Handler (No changes needed here)
 function confirmAction(action, id, amount = 0, userId = null){
     selectedWithdrawal = { action, id, amount: parseFloat(amount), userId };
     confirmMsg.textContent=`Are you sure you want to ${action} this withdrawal of $${amount}?`;
     confirmModal.style.display="flex";
 }
 
+// 2. Withdrawal Action Submission (calls secure Netlify Function)
 confirmYes.addEventListener("click", async ()=>{
     confirmModal.style.display="none";
     if(!selectedWithdrawal) return;
@@ -322,10 +315,10 @@ confirmYes.addEventListener("click", async ()=>{
             payload = { withdrawalId: selectedWithdrawal.id };
         }
         
+        // 🛑 FIX: Use standard fetch utility
         const res = await callNetlifyFunction(url, payload);
+
         showSuccess(res.message || `Withdrawal ${selectedWithdrawal.action}ed successfully!`);
-        // 🛑 IMPORTANT: Reload data after action is complete
-        await loadAdminData();
 
     }catch(err){ 
         console.error("Function Error:", err); 
@@ -336,6 +329,7 @@ confirmYes.addEventListener("click", async ()=>{
 
 confirmNo.addEventListener("click", ()=>{ selectedWithdrawal=null; confirmModal.style.display="none"; });
 
+// 3. Deposit Action Submission (calls secure Netlify Function)
 depositYes.addEventListener("click", async ()=>{
     const amt=parseFloat(depositAmountInput.value);
     if(isNaN(amt)||amt<=0){ showError("Enter a valid positive amount."); return; }
@@ -350,11 +344,10 @@ depositYes.addEventListener("click", async ()=>{
             email: depositUserEmail
         };
 
+        // 🛑 FIX: Use standard fetch utility
         const res = await callNetlifyFunction(adminDeposit_URL, payload);
+
         showSuccess(res.message || `Deposited $${amt} successfully!`);
-        // 🛑 IMPORTANT: Reload data after action is complete
-        await loadAdminData();
-        
     }catch(err){ 
         console.error("Function Error:", err); 
         showError(err.message || "Failed to process deposit."); 
@@ -364,6 +357,7 @@ depositYes.addEventListener("click", async ()=>{
 
 depositNo.addEventListener("click",()=>{ depositUserId=null; depositUserEmail=null; depositModal.style.display="none"; });
 
+// 4. Send Message Handler (calls secure Netlify Function)
 sendMsgBtn.addEventListener("click",async()=>{
     if(!messageUserId) return;
     const subject=msgSubject.value.trim();
@@ -378,7 +372,9 @@ sendMsgBtn.addEventListener("click",async()=>{
             message: body
         };
 
+        // 🛑 FIX: Use standard fetch utility
         const res = await callNetlifyFunction(adminSendMessage_URL, payload);
+
         showSuccess(res.message || "Message sent successfully!");
     }catch(err){ 
         console.error("Function Error:", err); 
