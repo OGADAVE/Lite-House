@@ -173,6 +173,9 @@ h2{
       <option value="sol">Solana (SOL)</option>
     </select>
 
+    <label for="amount">Deposit Amount (USDT)</label>
+    <input type="number" id="depositAmount" placeholder="Enter amount to deposit" min="10" step="0.01"/>
+
     <label>Deposit Wallet Address</label>
     <input type="text" id="walletAddress" readonly class="crypto-address" value="Select a crypto to see address"/>
 
@@ -215,6 +218,7 @@ const db = getFirestore(app);
 
 const balanceEl = document.getElementById('balance');
 const cryptoSelect = document.getElementById('crypto');
+const depositAmountEl = document.getElementById('depositAmount');
 const walletAddressEl = document.getElementById('walletAddress');
 const copyBtn = document.getElementById('copyBtn');
 const completedBtn = document.getElementById('completedBtn');
@@ -224,10 +228,10 @@ let currentUser = null;
 
 // Wallet Addresses
 const wallets = {
-  usdt: "0x0bda56de19824bf98bed3c3338896c2dec41e18e",
-  btc: "bc1qbtcwalletaddressxyz",
-  ltc: "ltcwalletaddressxyz",
-  sol: "solwalletaddressxyz"
+  usdt: "0x040129ca5AecAB3263c7C713820a336D4568332b",
+  btc: "bc1quw74vqrj4zcdkdvda09fg5z32ffk0yv4pdhjx7",
+  ltc: "ltc1qgqs7kpey3990wrxlap8hv6pue9zvey58a53422",
+  sol: "4ZAb9ZnjiSbxcz7ej1wzJbQregUaXq41ipf4AVZvLXtU"
 };
 
 // QR Code Initialization
@@ -272,25 +276,33 @@ copyBtn.addEventListener('click', async ()=>{
 
 // Deposit completed
 completedBtn.addEventListener('click', async ()=>{
-  if (!currentUser) { alert("User not logged in"); return; }
-  const crypto = cryptoSelect.value;
-  const address = wallets[crypto];
-  if (!address) return alert("Select a crypto first");
+  if (!currentUser) { alert("User not logged in"); return; }
 
-  try {
-    await addDoc(collection(db, "deposits"), {
-      userId: currentUser.uid,
-      email: currentUser.email,
-      crypto: crypto.toUpperCase(),
-      address: address,
-      status: "pending",
-      timestamp: new Date().toISOString()
-    });
-    alert("Deposit submitted successfully. Await admin approval.");
-  } catch (err) {
-    console.error(err);
-    alert("Failed to record deposit. Try again.");
-  }
+  const amount = parseFloat(depositAmountEl.value); // <--- GET AMOUNT
+  if (isNaN(amount) || amount <= 0) { // <--- VALIDATE AMOUNT
+    return alert("Please enter a valid deposit amount.");
+  }
+
+  const crypto = cryptoSelect.value;
+  const address = wallets[crypto];
+  if (!address) return alert("Select a crypto first");
+
+  try {
+    await addDoc(collection(db, "deposits"), {
+      userId: currentUser.uid,
+      email: currentUser.email,
+      amount: amount,
+      crypto: crypto.toUpperCase(),
+      address: address,
+      status: "pending",
+      timestamp: new Date().toISOString()
+    });
+    alert(`Deposit of ${amount} ${crypto.toUpperCase()} submitted successfully. Await admin approval.`);
+    depositAmountEl.value = ''; // <--- CLEAR AMOUNT FIELD
+  } catch (err) {
+    console.error(err);
+    alert("Failed to record deposit. Try again.");
+  }
 });
 </script>
 </body>
