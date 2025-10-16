@@ -1,17 +1,25 @@
-// netlify/functions/adminDeposit.js
-
-const admin = require('firebase-admin');
-
 // --- Netlify Setup: Initialize Admin SDK from Environment Variable ---
-const serviceAccountString = process.env.FIREBASE_ADMIN_CONFIG; 
-// CRITICAL: Fix escaped newlines and parse the JSON string
-const serviceAccount = JSON.parse(serviceAccountString.replace(/\\\\n/g, '\\n')); 
 
-if (!admin.apps.length) {
-    admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-    });
+// 1. Get the JSON string from the Netlify environment variable
+const configString = process.env.FIREBASE_ADMIN_CONFIG;
+
+// 2. PARSE the JSON string into an object (This is the standard, simple way)
+// We wrap it in a try/catch to handle potential failures gracefully.
+try {
+    const serviceAccount = JSON.parse(configString);
+    
+    if (!admin.apps.length) {
+        admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount)
+        });
+    }
+
+} catch (error) {
+    // Log the error to Netlify's console if initialization fails
+    console.error("Firebase Admin Initialization Error:", error);
+    // Returning here will prevent the function from running and hitting a 500 error
 }
+
 const db = admin.firestore();
 // --------------------------------------------------------------------
 
