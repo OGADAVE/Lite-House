@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>Trading Plans | Lite-House</title>
+
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+html,body {
+  height:100%;
+  font-family:"Poppins","Segoe UI",Tahoma,sans-serif;
+  background: linear-gradient(135deg, #0a0f1f, #111c3a);
+  color: #fff;
+  display:flex;
+  flex-direction:column;
+  scroll-behavior:smooth;
+}
+
+/* Sidebar */
+.sidebar {
+  width:230px;
+  background:rgba(11,11,11,0.97);
+  backdrop-filter: blur(6px);
+  padding:24px 16px;
+  border-right:1px solid rgba(255,255,255,0.08);
+  position:fixed;
+  top:0;
+  left:0;
+  bottom:0;
+  overflow:auto;
+  box-shadow: 4px 0 18px rgba(0,0,0,0.5);
+  z-index:1000;
+  transition:left 0.3s ease;
+}
+.brand {
+  text-align:center;
+  color:#00aaff;
+  font-weight:700;
+  font-size:20px;
+  margin-bottom:18px;
+  text-shadow:0 0 10px rgba(0,170,255,0.3);
+}
+.nav-links a, .wallet-menu button {
+  display:block;
+  color:#dcdcdc;
+  text-decoration:none;
+  padding:10px 12px;
+  border-radius:8px;
+  margin-bottom:8px;
+  transition:all .18s ease;
+  font-size:15px;
+  background:none;
+  border:none;
+  text-align:left;
+  cursor:pointer;
+}
+.nav-links a i, .wallet-menu button i {
+  width:18px;
+  margin-right:10px;
+  opacity:.9;
+}
+.nav-links a:hover, .nav-links a.active, .wallet-menu button:hover {
+  background:#00aaff;
+  color:#fff;
+  box-shadow:0 0 12px rgba(0,170,255,0.2);
+}
+.wallet-submenu {
+  display:none;
+  margin-left:12px;
+  margin-bottom:6px;
+}
+.wallet-menu.open .wallet-submenu {
+  display:block;
+}
+.wallet-submenu a {
+  display:block;
+  color:#bfc7c9;
+  padding:8px 10px;
+  text-decoration:none;
+  border-radius:6px;
+  margin-bottom:6px;
+  font-size:14px;
+}
+
+/* Main Content */
+.main-content {
+  margin-left:230px;
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  min-height:100vh;
+  overflow:auto;
+  transition:margin-left .3s ease;
+}
+.topbar {
+  padding:14px 22px;
+  background:rgba(255,255,255,0.04);
+  border-bottom:1px solid rgba(255,255,255,0.06);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.topbar h3 {
+  font-weight:600;
+  color:#fff;
+  margin:0;
+  font-size:18px;
+    text-shadow:0 0 8px rgba(255,255,255,0.1);
+}
+
+/* Page Header */
+.page-header { padding:22px; }
+.page-header h2 {
+  color:#00aaff;
+  font-size:24px;
+  margin-bottom:12px;
+  text-shadow:0 0 10px rgba(0,170,255,0.25);
+}
+.page-header p {
+  font-size:14px;
+  color:#dfe9ea;
+}
+
+/* Plan Cards */
+.plans-grid {
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px,1fr));
+  gap:16px;
+  padding:22px;
+}
+.plan-card {
+  background:rgba(255,255,255,0.05);
+  border-radius:12px;
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  box-shadow:0 6px 20px rgba(0,0,0,0.4);
+  transition:transform 0.25s ease, box-shadow 0.25s ease;
+  cursor:pointer;
+  position:relative;
+  overflow:hidden;
+}
+.plan-card::before {
+  content:"";
+  position:absolute;
+  top:0; left:-75%;
+  width:50%; height:100%;
+  background:linear-gradient(120deg,transparent,rgba(255,255,255,0.1),transparent);
+  transform:skewX(-25deg);
+  transition:0.5s;
+}
+.plan-card:hover::before { left:125%; }
+.plan-card:hover {
+  transform:translateY(-6px);
+  box-shadow:0 12px 28px rgba(0,0,0,0.6);
+}
+.plan-card h3 {
+  color:#00aaff;
+  font-size:18px;
+  margin-bottom:6px;
+}
+.plan-card .price { font-size:22px; font-weight:700; }
+.plan-card .roi { font-size:14px; color:#bfc7c9; }
+.plan-card ul {
+  list-style:none;
+  padding-left:0;
+  font-size:14px;
+  color:#dfe9ea;
+  margin:0;
+}
+.plan-card ul li { margin-bottom:6px; }
+.plan-card button {
+  margin-top:auto;
+  padding:10px;
+  border-radius:8px;
+  background:#00aaff;
+  color:#fff;
+  font-weight:700;
+  border:none;
+  cursor:pointer;
+  transition:background 0.2s ease, transform 0.2s ease;
+}
+.plan-card button:hover { background:#0091dd; transform:translateY(-2px); }
+
+/* Footer */
+.footer {
+  height:76px;
+  background:#0b0b0b;
+  border-top:1px solid rgba(255,255,255,0.06);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 22px;
+  gap:12px;
+  margin-top:auto;
+}
+.footer p { color:#bfc9cc; font-size:13px; }
+.social-icons a {
+  color:#00c6ff;
+  margin-left:10px;
+  text-decoration:none;
+  font-size:18px;
+  display:inline-block;
+}
+.social-icons a:hover { color:#25d366; }
+
+/* Overlay for mobile */
+.overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  z-index: 900;
+}
+.overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Responsive */
+@media(max-width:768px){
+  .sidebar { left:-230px; position:fixed; z-index:1000; transition:left 0.3s ease; }
+  .sidebar.open { left:0; }
+  .main-content { margin-left:0; }
+  .menu-toggle {
+    background:none;
+    border:none;
+    color:#fff;
+    font-size:22px;
+    cursor:pointer;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="brand">LITE-HOUSE</div>
+  <nav class="nav-links">
+    <a href="dashboard.html"><i class="fas fa-house"></i> Dashboard</a>
+    <a href="profile.html"><i class="fas fa-user"></i> Profile</a>
+    <a href="trading.html" class="active"><i class="fas fa-briefcase"></i> Trading Plans</a>
+    <div class="wallet-menu" id="walletMenu">
+      <button type="button"><i class="fas fa-wallet"></i> Wallet ▾</button>
+      <div class="wallet-submenu">
+        <a href="deposit.html">Deposit</a>
+        <a href="withdraw.html">Withdraw</a>
+        <a href="history.html">Transaction History</a>
+      </div>
+    </div>
+    <a href="support.html"><i class="fas fa-headset"></i> Support</a>
+    <a href="#" id="logoutBtn"><i class="fas fa-right-from-bracket"></i> Logout</a>
+  </nav>
+</aside>
+
+<!-- Main -->
+<div class="main-content">
+  <div class="topbar">
+    <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+    <h3>Trading Plans</h3>
+  </div>
+
+  <div class="page-header">
+    <h2>Choose Your Plan</h2>
+    <p>Select a plan that fits your trading goals. Earn daily ROI with AI trading.</p>
+  </div>
+
+  <div class="plans-grid">
+    <div class="plan-card" data-min="11" data-max="20.9" data-roi="5" data-name="Starter">
+      <h3>Starter</h3>
+      <div class="price">$11</div>
+      <div class="roi">Daily ROI: 5%</div>
+      <ul>
+        <li>Minimum deposit: $11</li>
+        <li>Maximum deposit: $20.9</li>
+        <li>Duration: 30 days</li>
+        <li>Basic support</li>
+      </ul>
+      <button>Subscribe</button>
+    </div>
+
+    <div class="plan-card" data-min="21" data-max="30.9" data-roi="5.5" data-name="Professional">
+      <h3>Professional</h3>
+      <div class="price">$21</div>
+      <div class="roi">Daily ROI: 5.5%</div>
+      <ul>
+        <li>Minimum deposit: $21</li>
+        <li>Maximum deposit: $30.9</li>
+        <li>Duration: 35 days</li>
+        <li>Priority support</li>
+      </ul>
+      <button>Subscribe</button>
+    </div>
+
+    <div class="plan-card" data-min="51" data-max="500.9" data-roi="6" data-name="Advanced">
+      <h3>Advanced</h3>
+      <div class="price">$51</div>
+      <div class="roi">Daily ROI: 6%</div>
+      <ul>
+        <li>Minimum deposit: $51</li>
+        <li>Maximum deposit: $500.9</li>
+        <li>Duration: 40 days</li>
+        <li>Dedicated account manager</li>
+      </ul>
+      <button>Subscribe</button>
+    </div>
+
+    <div class="plan-card" data-min="101" data-max="999999" data-roi="6.5" data-name="VIP">
+      <h3>VIP</h3>
+      <div class="price">$101</div>
+      <div class="roi">Daily ROI: 6.5%</div>
+      <ul>
+        <li>Minimum deposit: $101</li>
+        <li>Maximum deposit: Unlimited</li>
+        <li>Duration: 50 days</li>
+        <li>Premium support & perks</li>
+      </ul>
+      <button>Subscribe</button>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>© 2025 Lite-House Inc. All rights reserved.</p>
+    <div class="social-icons">
+      <a href="#"><i class="fab fa-telegram-plane"></i></a>
+      <a href="#"><i class="fab fa-whatsapp"></i></a>
+    </div>
+  </footer>
+</div>
+
+<div class="overlay" id="overlay"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAYpJh4hLwrXsFpKnnXi1e6wVstgitv5L0",
+  authDomain: "lite-house-b2139.firebaseapp.com",
+  projectId: "lite-house-b2139",
+  storageBucket: "lite-house-b2139.appspot.com",
+  messagingSenderId: "563490813811",
+  appId: "1:563490813811:web:1d3d83fb43db7be178f706",
+  measurementId: "G-5JF6YSRC9F"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// Sidebar toggle (mobile)
+const sidebar = document.getElementById("sidebar");
+const menuToggle = document.getElementById("menuToggle");
+const overlay = document.getElementById("overlay");
+
+menuToggle.addEventListener("click", () => {
+  sidebar.classList.toggle("open");
+  overlay.classList.toggle("show");
+});
+overlay.addEventListener("click", () => {
+  sidebar.classList.remove("open");
+  overlay.classList.remove("show");
+});
+
+// Wallet dropdown
+const walletMenu = document.getElementById('walletMenu');
+walletMenu.querySelector('button').addEventListener('click', () => walletMenu.classList.toggle('open'));
+
+// Logout
+document.getElementById('logoutBtn').addEventListener('click', async (e)=>{
+  e.preventDefault();
+  try {
+    await signOut(auth);
+    window.location.href = "index.html";
+  } catch (err) {
+    alert("Logout failed.");
+  }
+});
+
+// Auth check
+let currentUser = null;
+onAuthStateChanged(auth, user=>{
+  if(!user){
+    alert("Please log in to subscribe to a plan.");
+    window.location.href = "index.html";
+    return;
+  }
+  currentUser = user;
+});
+
+// --- Subscribe Logic ---
+document.querySelectorAll('.plan-card button').forEach(btn=>{
+  btn.addEventListener('click', async e=>{
+    if(!currentUser) return alert("User not logged in.");
+
+    const card = e.target.closest('.plan-card');
+    const planName = card.dataset.name;
+    const min = parseFloat(card.dataset.min);
+    const max = parseFloat(card.dataset.max);
+    const roi = parseFloat(card.dataset.roi);
+
+    btn.textContent = "Processing...";
+    btn.disabled = true;
+
+    try {
+      const userRef = doc(db,"users",currentUser.uid);
+      const userSnap = await getDoc(userRef);
+
+      if(!userSnap.exists()){
+        alert("User record not found.");
+        return;
+      }
+
+      const userData = userSnap.data();
+      const accountBal = parseFloat(userData.accountBalance || 0);
+      const tradeBal = parseFloat(userData.tradingBalance || 0);
+      const planData = userData.plan || {};
+
+      if (planData.status === "active") {
+        alert("You already have an active trading plan!");
+        btn.textContent = "Subscribe";
+        btn.disabled = false;
+        return;
+      }
+
+      if(accountBal < min){
+        alert(`Insufficient balance! You need at least $${min} to join this plan.`);
+        btn.textContent = "Subscribe";
+        btn.disabled = false;
+        return;
+      }
+
+      const newAccountBal = accountBal - min;
+      const newTradeBal = tradeBal + min;
+
+      await updateDoc(userRef, {
+        accountBalance: newAccountBal,
+        tradingBalance: newTradeBal,
+        plan: {
+          name: planName,
+          amount: min,
+          dailyROI: roi,
+          createdAt: serverTimestamp(),
+          status: "active"
+        }
+      });
+
+      // --- Referral bonus ---
+        if(userData.referredBy){
+        const referrerRef = doc(db,"users",userData.referredBy);
+        const refSnap = await getDoc(referrerRef);
+        if(refSnap.exists()){
+            const currentBonus = refSnap.data().totalEarnedFromReferrals || 0;
+            const bonusAmount = min * 0.10; // 10% of the plan amount
+            await updateDoc(referrerRef,{
+                totalEarnedFromReferrals: currentBonus + bonusAmount
+            });
+        }
+        }
+
+      alert(`✅ You have successfully subscribed to the ${planName} plan! 
+        $${min} moved from your account balance to trading balance.`);
+
+    } catch (err){
+      console.error(err);
+      alert("Failed to subscribe. Please try again.");
+    } finally {
+      btn.textContent = "Subscribe";
+      btn.disabled = false;
+    }
+  });
+});
+</script>
+</body>
+</html>

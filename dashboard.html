@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Dashboard | Lite-House</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<style>
+* { box-sizing: border-box; margin:0; padding:0; }
+html,body { height:100%; }
+body {
+  font-family: "Poppins", "Segoe UI", Tahoma, sans-serif;
+  background: linear-gradient(135deg, #0a0f1f, #111c3a);
+  color: #fff;
+  display:flex;
+  min-height:100vh;
+  overflow:hidden;
+}
+
+/* ---------- Sidebar ---------- */
+.sidebar {
+  width: 230px;
+  background: rgba(11,11,11,0.95);
+  padding: 24px 16px;
+  border-right: 1px solid rgba(255,255,255,0.06);
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  overflow: auto;
+  box-shadow: 2px 0 12px rgba(0,0,0,0.5);
+  z-index: 1000;
+  transition: left 0.3s ease;
+}
+
+.brand { 
+    text-align:center; 
+    color:#00aaff; 
+    font-weight:700; 
+    font-size:20px; 
+    margin-bottom:18px; 
+}
+.nav-links a, .wallet-menu button {
+  display:block;
+  color:#dcdcdc;
+  text-decoration:none;
+  padding:10px 12px;
+  border-radius:8px;
+  margin-bottom:8px;
+  transition:all .18s ease;
+  font-size:15px;
+  background:none;
+  border:none;
+  text-align:left;
+  cursor:pointer;
+}
+.nav-links a i, .wallet-menu button i{ width:18px; margin-right:10px; opacity:.9; }
+.nav-links a:hover, .nav-links a.active, .wallet-menu button:hover { 
+  background:#00aaff; color:#fff; box-shadow:0 4px 12px rgba(0,170,255,0.1);
+}
+.wallet-submenu { display:none; margin-left:12px; margin-bottom:6px; }
+.wallet-submenu a { display:block; color:#bfc7c9; padding:8px 10px; text-decoration:none; border-radius:6px; margin-bottom:6px; font-size:14px; }
+.wallet-menu.open .wallet-submenu{ display:block; }
+
+/* ---------- Main content ---------- */
+.main-content { margin-left:230px; flex:1; display:flex; flex-direction:column; min-height:100vh; overflow:hidden; }
+.topbar {
+  padding:14px 22px;
+  background:rgba(255,255,255,0.04);
+  border-bottom:1px solid rgba(255,255,255,0.04);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.topbar h3 { font-weight:600; color:#fff; margin:0; font-size:18px; }
+.top-actions { display:flex; gap:10px; align-items:center; }
+
+/* 🔔 NOTIFICATION & MESSAGES UI STYLES (MERGED) */
+.top-actions .notifications, .top-actions .inbox {
+  position: relative;
+  display: inline-block;
+}
+.top-actions button {
+    background: none;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+    position: relative;
+}
+.top-actions button:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+.badge {
+    background: red;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px; 
+    font-size: 11px;
+    position: absolute;
+    top: 0;
+    right: 0;
+    line-height: 1; 
+}
+.notif-dropdown {
+    position: absolute;
+    top: 45px; 
+    right: 0;
+    left: auto; 
+    width: 250px;
+    background: #000; 
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    padding: 10px;
+    z-index: 1000; 
+}
+.notif-dropdown h4 { color: #00aaff; margin-bottom: 8px; font-size: 16px; }
+.notif-dropdown.hidden { display: none; }
+#notifList { list-style: none; padding: 0; margin: 0; }
+#notifList li {
+    list-style: none;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding: 8px 0;
+    color: #dcdcdc;
+    font-size: 14px;
+}
+#notifList li:last-child { border: none; }
+
+
+#inboxModal .modal-content {
+    background: rgba(11,11,11,0.98); 
+    color: #fff;
+    width: 350px;
+    max-height: 400px;
+    overflow-y: auto;
+    text-align: left;
+}
+#messageList { list-style: none; padding: 0; margin: 0 0 10px 0; }
+#messageList li {
+    border-bottom: 1px solid #333; 
+    padding: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+#messageList li:hover { background-color: rgba(255,255,255,0.05); }
+#messageList li.unread {
+    background-color: rgba(0,170,255,0.15);
+    font-weight: 600;
+}
+#closeInbox {
+    background: #00aaff;
+    color: #fff;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 10px;
+    float: right;
+}
+#closeInbox:hover { background: #007db3; }
+
+
+/* ---------- Dashboard body ---------- */
+.dashboard-body { padding:22px; overflow:auto; padding-bottom:140px; }
+
+.card {
+  background:rgba(255,255,255,0.04);
+  border-radius:10px;
+  padding:18px;
+  margin-bottom:18px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+}
+.card h3 { 
+    color:#00aaff; 
+    margin-bottom:10px; 
+    font-size:16px; 
+}
+.card p { 
+    color:#dfe9ea; 
+    font-size:14px; 
+    line-height:1.45; 
+}
+
+/* balances area kept visually consistent with existing design */
+.balances { display: flex; flex-wrap: wrap; gap: 20px; }
+.balance-item { flex: 1; min-width: 220px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.03); }
+.balance-item h4 { font-size: 16px; margin-bottom: 6px; color: #dfe9ea; }
+.balance-item span { font-weight: bold; font-size: 18px; color: #fff; display:inline-block; min-width:80px; }
+.transfer-btn { background: #00aaff; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; margin-top: 8px; }
+.transfer-btn:hover { background: #007db3; }
+
+/* Modal (Existing styles for transfer modal) */
+.modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+.modal.hidden { display: none; } /* Added for consistency with inbox modal logic */
+.modal-content { background: rgba(11,11,11,0.98); color: #fff; padding: 25px; border-radius: 10px; width: 90%; max-width: 420px; text-align: center; border: 1px solid rgba(255,255,255,0.04); }
+.modal-content h3 { margin-bottom: 12px; color: #00aaff; }
+.modal-content input { width: 100%; padding: 10px; margin-bottom: 12px; border-radius: 8px; border: none; font-size: 16px; }
+.modal-content .modal-actions { display:flex; gap:10px; justify-content:center; margin-top:8px; }
+.modal-content button { background: #00aaff; color: #fff; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; }
+.modal-content button.secondary { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); }
+.modal-content button[disabled] { opacity: 0.6; cursor: not-allowed; }
+
+/* ticker + others kept same */
+input[type="text"], input[type="number"] {
+  width:100%;
+  padding:10px 12px;
+  border-radius:8px;
+  border:none;
+  background:#fff;
+  color:#222;
+  font-size:14px;
+  margin-top:8px;
+}
+.btn { display:inline-block; margin-top:12px; padding:10px 14px; border-radius:8px; background:#00aaff; color:#fff; border:none; cursor:pointer; font-weight:700; }
+.btn.ghost { background:transparent; border:1px solid rgba(255,255,255,0.06); color:#fff; }
+
+.ticker-grid {
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap:12px;
+  align-items:stretch;
+  margin-top:8px;
+}
+
+.pair {
+  background:linear-gradient(180deg, rgba(0,0,0,0.25), rgba(255,255,255,0.02));
+  padding:10px 12px;
+  border-radius:8px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  position:relative;
+}
+.pair .left { display:flex; align-items:center; gap:8px; font-weight:700; color:#e9f7ff; }
+.pair .price-row { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.price { font-size:16px; font-weight:800; text-shadow:0 1px 8px rgba(0,0,0,0.6); }
+.pct { font-size:13px; font-weight:700; padding:4px 8px; border-radius:12px; color:#fff; }
+
+.up { background: rgba(76,175,80,0.18); color:#4caf50; box-shadow:0 4px 12px rgba(76,175,80,0.06); }
+.down { background: rgba(244,67,54,0.12); color:#f44336; box-shadow:0 4px 12px rgba(244,67,54,0.05); }
+
+.flash-up { animation: flashGreen .9s ease; }
+.flash-down { animation: flashRed .9s ease; }
+@keyframes flashGreen {0% { transform: translateY(-6px); opacity:0.0; } 20% { transform: translateY(0); opacity:1; } 100% { transform: translateY(0); opacity:1; }}
+@keyframes flashRed {0% { transform: translateY(-6px); opacity:0.0; } 20% { transform: translateY(0); opacity:1; } 100% { transform: translateY(0); opacity:1; }}
+
+.menu-btn { font-size: 22px; cursor: pointer; color: #00aaff; background: none; border: none; }
+
+.footer {
+  position:fixed; left:230px; right:0; bottom:0; height:76px;
+  background:#0b0b0b; border-top:1px solid rgba(255,255,255,0.04);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 22px; gap:12px; z-index:100;
+}
+.footer p { color:#bfc9cc; font-size:13px; }
+.social-icons a { color:#00c6ff; margin-left:10px; text-decoration:none; font-size:18px; display:inline-block; }
+.social-icons a:hover { color:#25d366; }
+
+.overlay { 
+    z-index: 150;
+    transition: opacity 0.3s ease;
+    opacity: 0; 
+}
+.overlay.show { 
+    opacity: 1; 
+}
+
+@media (max-width: 768px) {
+  body { overflow-x:hidden; }
+  .sidebar { position:fixed; left:-230px; transition: left 0.3s ease; }
+  .sidebar.active { left:0; }
+  .overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.55); z-index:150; }
+  .overlay.show { display:block; }
+  .main-content { margin-left:0; width:100%; }
+  .footer { position: relative; left:0; width:100%; }
+  .notif-dropdown { top: 40px; right: 10px; }
+}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="brand">LITE-HOUSE</div>
+  <nav class="nav-links">
+    <a href="dashboard.html" class="active"><i class="fas fa-house"></i> Dashboard</a>
+    <a href="profile.html"><i class="fas fa-user"></i> Profile</a>
+    <a href="trading.html"><i class="fas fa-briefcase"></i> Trading Plans</a>
+    <div class="wallet-menu" id="walletMenu">
+      <button type="button"><i class="fas fa-wallet"></i> Wallet ▾</button>
+      <div class="wallet-submenu">
+        <a href="deposit.html">Deposit</a>
+        <a href="withdraw.html">Withdraw</a>
+        <a href="history.html">Transaction History</a>
+      </div>
+    </div>
+    <a href="support.html"><i class="fas fa-headset"></i> Support</a>
+    <a href="#" id="logoutBtn"><i class="fas fa-right-from-bracket"></i> Logout</a>
+  </nav>
+</aside>
+
+<div class="main-content">
+  <div class="topbar">
+    <h3>Welcome to your Dashboard</h3>
+    <div class="top-actions">
+      <div class="notifications">
+        <button id="notifBtn" aria-label="Notifications">
+          <i class="fas fa-bell"></i> <span id="notifCount" class="badge">0</span>
+        </button>
+        <div id="notifDropdown" class="notif-dropdown hidden">
+          <h4>Notifications</h4>
+          <ul id="notifList"></ul>
+        </div>
+      </div>
+    
+      <div class="inbox">
+        <button id="inboxBtn" aria-label="Inbox Messages">
+          <i class="fas fa-envelope"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <section class="dashboard-body">
+      <div class="card">
+        <h3>Account Summary</h3>
+        <div class="balances">
+          <div class="balance-item">
+            <h4>Account Balance</h4>
+            <span id="accountBalance">Loading...</span> USDT
+          </div>
+          <div class="balance-item">
+            <h4>Trading Balance</h4>
+            <span id="tradingBalance">Loading...</span> USDT
+          </div>
+          <div class="balance-item">
+            <h4>Daily ROI Balance</h4>
+            <span id="dailyRoiBalance">Loading...</span> USDT
+            <button class="transfer-btn" id="openTransferModal" aria-label="Transfer ROI">Transfer</button>
+          </div>
+        </div>
+      </div>
+
+    <div class="card">
+      <h3>Live OTC Market</h3>
+      <div class="ticker-grid" id="tickerGrid" aria-hidden="false"></div>
+    </div>
+
+    <div class="card">
+      <h3>Your Referral Link</h3>
+      <p>Share this link and earn 10% commission on your referrals' deposits.</p>
+      <input type="text" id="referralLink" readonly />
+      <button class="btn" id="copyLinkBtn">Copy Link</button>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <p>© 2025 Lite-House Inc. All rights reserved.</p>
+    <div class="social-icons">
+      <a href="#" title="Telegram"><i class="fab fa-telegram-plane"></i></a>
+      <a href="#" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+    </div>
+  </footer>
+</div>
+
+<div id="transferModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="modal-content" role="document">
+    <h3>Transfer ROI to Account</h3>
+    <input type="number" id="transferAmount" placeholder="Enter amount" min="0.01" step="0.01" />
+    <div class="modal-actions">
+      <button id="confirmTransfer">Transfer</button>
+      <button class="secondary" onclick="closeModal()">Cancel</button>
+    </div>
+    <p id="transferMsg" style="margin-top:10px;color:#cfe9ff;display:none;"></p>
+  </div>
+</div>
+
+<div id="inboxModal" class="modal hidden" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="modal-content">
+    <h3>📩 Messages from Account Manager</h3>
+    <ul id="messageList"></ul>
+    <button id="closeInbox">Close</button>
+  </div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, onSnapshot, getDoc, updateDoc, collection, serverTimestamp, runTransaction, setDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ---------------- Firebase Config ----------------
+const firebaseConfig = {
+  apiKey: "AIzaSyAYpJh4hLwrXsFpKnnXi1e6wVstgitv5L0",
+  authDomain: "lite-house-b2139.firebaseapp.com",
+  projectId: "lite-house-b2139",
+  storageBucket: "lite-house-b2139.appspot.com",
+  messagingSenderId: "563490813811",
+  appId: "1:563490813811:web:1d3d83fb43db7be178f706",
+  measurementId: "G-5JF6YSRC9F"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// ---------------- DOM Elements ----------------
+const accountEl = document.getElementById('accountBalance');
+const tradingEl = document.getElementById('tradingBalance');
+const roiEl = document.getElementById('dailyRoiBalance');
+
+const modal = document.getElementById('transferModal');
+const openBtn = document.getElementById('openTransferModal');
+const confirmBtn = document.getElementById('confirmTransfer');
+const amountInput = document.getElementById('transferAmount');
+const transferMsg = document.getElementById('transferMsg');
+
+const referralInput = document.getElementById('referralLink');
+const copyBtn = document.getElementById('copyLinkBtn');
+
+const walletMenu = document.getElementById('walletMenu');
+walletMenu.querySelector('button').addEventListener('click', () => walletMenu.classList.toggle('open'));
+
+const sidebar = document.querySelector('.sidebar');
+const overlay = document.getElementById('overlay');
+const topbar = document.querySelector('.topbar');
+
+// --- NOTIFICATION & MESSAGES ELEMENTS (MERGED) ---
+const notifBtn = document.getElementById("notifBtn");
+const notifDropdown = document.getElementById("notifDropdown");
+const notifList = document.getElementById("notifList");
+const notifCount = document.getElementById("notifCount");
+const inboxBtn = document.getElementById("inboxBtn");
+const inboxModal = document.getElementById("inboxModal");
+const closeInbox = document.getElementById("closeInbox");
+const messageList = document.getElementById("messageList");
+
+// ---------------- UI EVENT LISTENERS (MERGED) ----------------
+
+// Toggle Notification Dropdown
+notifBtn.addEventListener("click", () => notifDropdown.classList.toggle("hidden"));
+
+// Open/Close Inbox Modal
+inboxBtn.addEventListener("click", () => {
+    inboxModal.classList.remove("hidden");
+    inboxModal.setAttribute('aria-hidden', 'false');
+});
+closeInbox.addEventListener("click", () => {
+    inboxModal.classList.add("hidden");
+    inboxModal.setAttribute('aria-hidden', 'true');
+});
+
+// create menu button only if not present (prevent duplicates)
+let menuBtn = document.querySelector('.menu-btn');
+if (!menuBtn) {
+  menuBtn = document.createElement('button');
+  menuBtn.className = 'menu-btn';
+  menuBtn.innerHTML = '<i class="fas fa-bars"></i>';
+  topbar.prepend(menuBtn);
+}
+menuBtn.addEventListener('click', () => { sidebar.classList.toggle('active'); overlay.classList.toggle('show'); });
+overlay.addEventListener('click', () => { sidebar.classList.remove('active'); overlay.classList.remove('show'); });
+
+document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+  e.preventDefault();
+  try { await signOut(auth); window.location.href="login.html"; } 
+  catch(err){ alert("Logout failed."); }
+});
+
+// ---------------- Tooltip for Plan Info (attach listeners only once) ----------------
+const tooltip = document.createElement('div');
+tooltip.style.position = 'absolute';
+tooltip.style.background = 'rgba(0,0,0,0.85)';
+tooltip.style.color = '#fff';
+tooltip.style.padding = '6px 10px';
+tooltip.style.borderRadius = '6px';
+tooltip.style.fontSize = '13px';
+tooltip.style.pointerEvents = 'none';
+tooltip.style.opacity = 0;
+tooltip.style.transition = 'opacity 0.2s ease';
+document.body.appendChild(tooltip);
+
+// ---------------- User Data & Balance ----------------
+let currentUser = null;
+let lastAccountBalance = 0;
+let lastUserData = null; 
+
+// helper: show modal / close
+openBtn.addEventListener('click', () => {
+  modal.style.display = 'flex';
+  modal.setAttribute('aria-hidden', 'false');
+});
+window.closeModal = () => {
+  modal.style.display = 'none';
+  modal.setAttribute('aria-hidden', 'true');
+  amountInput.value = '';
+  transferMsg.style.display = 'none';
+  transferMsg.textContent = '';
+};
+
+// safe animate for account balance (only animates account balance)
+function animateAccountBalance(from, to) {
+  const duration = 800;
+  const startTime = performance.now();
+  function step(currentTime) {
+    const progress = Math.min((currentTime - startTime) / duration, 1);
+    const currentValue = from + (to - from) * progress;
+    accountEl.textContent = currentValue.toFixed(2);
+    accountEl.style.transition = '0.2s';
+    accountEl.style.color = (to > from) ? '#4caf50' : '#fff';
+    if (progress < 1) requestAnimationFrame(step);
+    else accountEl.style.color = '#fff';
+  }
+  requestAnimationFrame(step);
+}
+
+// ensure transfer handler only attached once
+let transferHandlerAttached = false;
+
+// Firestore auth & snapshot
+onAuthStateChanged(auth, (user) => {
+  if (!user) { window.location.href = "index.html"; return; }
+  currentUser = user;
+  referralInput.value = `${window.location.origin}/index.html?ref=${user.uid}`;
+
+  const uRef = doc(db, "users", user.uid);
+
+  // Real-time listener for user document (Balances, Plan Info)
+  onSnapshot(uRef, (snap) => {
+    if (!snap.exists()) return;
+    const data = snap.data();
+    lastUserData = data; 
+
+    // Update balances safely
+    const acc = Number(data.accountBalance ?? 0);
+    const tr = Number(data.tradingBalance ?? 0);
+    const roi = Number(data.dailyRoiBalance ?? 0);
+
+    // animate only account balance changes
+    animateAccountBalance(lastAccountBalance, acc);
+    lastAccountBalance = acc;
+
+    // update other balances immediately
+    tradingEl.textContent = tr.toFixed(2);
+    roiEl.textContent = roi.toFixed(2);
+
+    // Update tooltip content dynamically (attach events once)
+    const balanceEl = accountEl;
+    balanceEl.onmouseenter = () => {
+      tooltip.innerHTML = `
+        <strong>Plan:</strong> ${data.plan?.name || 'N/A'}<br>
+        <strong>Daily ROI (%):</strong> ${data.plan?.dailyROI || 0}<br>
+        <strong>Plan Price:</strong> $${data.plan?.price || 0}<br>
+        <strong>Status:</strong> ${data.plan?.status || 'N/A'}<br>
+        <strong>Next credit:</strong> 24h from start
+      `;
+      const rect = balanceEl.getBoundingClientRect();
+      tooltip.style.top = (rect.bottom + 8) + 'px';
+      tooltip.style.left = rect.left + 'px';
+      tooltip.style.opacity = 1;
+    };
+    balanceEl.onmouseleave = () => { tooltip.style.opacity = 0; };
+
+    // Attach transfer handler once (reads lastUserData)
+    if (!transferHandlerAttached) {
+      confirmBtn.addEventListener('click', async () => {
+        // disable while processing
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = "Processing...";
+        transferMsg.style.display = 'none';
+        try {
+          const amount = parseFloat(amountInput.value);
+          if (isNaN(amount) || amount <= 0) {
+            alert("Enter a valid amount greater than 0.");
+            return;
+          }
+          // document ref for transaction
+          const userDocRef = uRef; 
+
+          // run transaction to prevent races
+          await runTransaction(db, async (t) => {
+            const userSnap = await t.get(userDocRef);
+            if (!userSnap.exists()) throw new Error("User doc not found.");
+
+            const userDataNow = userSnap.data();
+            const available = Number(userDataNow.dailyRoiBalance ?? 0);
+
+            if (amount > available) throw new Error("Insufficient ROI balance.");
+
+            const newDailyRoi = Number(userDataNow.dailyRoiBalance ?? 0) - amount;
+            const newAccount = Number(userDataNow.accountBalance ?? 0) + amount;
+
+            // update balances
+            t.update(userDocRef, {
+              dailyRoiBalance: newDailyRoi,
+              accountBalance: newAccount
+            });
+
+            // create a transaction log doc
+            const txCollRef = collection(db, "transactions");
+            // create a new doc ref with auto id
+            const txDocRef = doc(txCollRef);
+            t.set(txDocRef, {
+              userId: currentUser.uid,
+              type: "roi_transfer",
+              amount: amount,
+              from: "dailyRoiBalance",
+              to: "accountBalance",
+              status: "completed",
+              note: "User initiated transfer from Daily ROI to Account",
+              createdAt: serverTimestamp()
+            });
+          }); // end runTransaction
+
+          // UI update: will also be updated by snapshot, but set optimistic values
+          if (lastUserData) {
+            const optimisticAccount = (Number(lastUserData.accountBalance || 0) + amount).toFixed(2);
+            const optimisticRoi = (Number(lastUserData.dailyRoiBalance || 0) - amount).toFixed(2);
+            accountEl.textContent = optimisticAccount;
+            roiEl.textContent = optimisticRoi;
+          }
+
+          transferMsg.style.display = 'block';
+          transferMsg.style.color = '#bfe9c7';
+          transferMsg.textContent = 'Transfer successful!';
+          setTimeout(() => { closeModal(); }, 900);
+        } catch (err) {
+          console.error("Transfer transaction failed:", err);
+          alert(err.message || "Transfer failed. Try again.");
+        } finally {
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = "Transfer";
+        }
+      });
+
+      transferHandlerAttached = true;
+    }
+  }, (err) => {
+    console.error("User snapshot error:", err);
+  });
+
+  // === Realtime Notifications (MERGED) ===
+  const notifRef = collection(db, "notifications");
+  const notifQ = query(notifRef, where("userId", "==", user.uid));
+  onSnapshot(notifQ, (snapshot) => {
+    notifList.innerHTML = "";
+    let unread = 0;
+    snapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      const li = document.createElement("li");
+      li.textContent = data.message || "New notification";
+      notifList.appendChild(li);
+      if (!data.read) unread++;
+    });
+    notifCount.textContent = unread;
+  });
+
+  // === Realtime Messages ===
+  const msgRef = collection(db, "messages");
+  const msgQ = query(msgRef, where("to", "==", user.uid));
+  onSnapshot(msgQ, (snapshot) => {
+    messageList.innerHTML = "";
+    snapshot.forEach(docSnap => {
+      const msg = docSnap.data();
+      const li = document.createElement("li");
+      li.textContent = `${msg.subject || "Message"} - ${msg.status === "unread" ? "(Unread)" : ""}`;
+      li.classList.toggle("unread", msg.status === "unread");
+
+      // Handle message click: show message content and mark as read
+      li.addEventListener("click", async () => {
+        alert(`${msg.subject}\n\n${msg.message}`);
+        if (msg.status === "unread") {
+          // Update the message document status
+          await updateDoc(doc(db, "messages", docSnap.id), { status: "read" });
+          // Note: The onSnapshot listener above will handle the UI update (removing 'unread' class)
+        }
+      });
+
+      messageList.appendChild(li);
+    });
+  });
+
+}); // End onAuthStateChanged
+
+// ---------------- Copy Referral Link ----------------
+copyBtn.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(referralInput.value);
+    copyBtn.textContent = "Copied!";
+    setTimeout(() => copyBtn.textContent = "Copy Link", 1400);
+  } catch (err) {
+    alert("Copy failed — select and press Ctrl+C.");
+  }
+});
+
+// ---------------- Live OTC + Sparklines ----------------
+const coins = [
+  { id:"bitcoin", symbol:"BTC/USDT", prices:[] },
+  { id:"ethereum", symbol:"ETH/USDT", prices:[] },
+  { id:"binancecoin", symbol:"BNB/USDT", prices:[] },
+  { id:"solana", symbol:"SOL/USDT", prices:[] },
+  { id:"ripple", symbol:"XRP/USDT", prices:[] },
+  { id:"litecoin", symbol:"LTC/USDT", prices:[] },
+  { id:"cardano", symbol:"ADA/USDT", prices:[] },
+  { id:"dogecoin", symbol:"DOGE/USDT", prices:[] },
+  { id:"matic-network", symbol:"MATIC/USDT", prices:[] },
+  { id:"avalanche-2", symbol:"AVAX/USDT", prices:[] }
+];
+
+const tickerGrid = document.getElementById('tickerGrid');
+
+// Create DOM & ApexCharts
+coins.forEach(c => {
+  const div = document.createElement('div');
+  div.className = 'pair';
+  div.id = `pair-${c.id}`;
+  div.innerHTML = `
+    <div class="left">${c.symbol}</div>
+    <div class="price-row"><div class="price" data-price>0</div><div class="pct" data-pct>0.00%</div></div>
+    <div id="chart-${c.id}" style="height:50px;"></div>
+  `;
+  tickerGrid.appendChild(div);
+  c.chart = new ApexCharts(document.querySelector(`#chart-${c.id}`), {
+    chart: { type:'area', sparkline:{ enabled:true } },
+    stroke: { curve:'smooth', width:2 },
+    series:[{ name:'Price', data:[] }],
+    tooltip:{ enabled:true, theme:'dark', x:{show:false}, y:{formatter:(val)=>val.toFixed(2)+' USDT'} },
+    fill:{ opacity:0.3 }, colors:['#00aaff']
+  });
+  c.chart.render();
+});
+
+// Fetch Coin Prices (production-friendly: 10s interval & pause when tab hidden)
+let fetchInterval = null;
+async function fetchPrices() {
+  try {
+    const ids = coins.map(c => c.id).join(',');
+    const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`);
+    if (!res.ok) throw new Error('Price fetch failed: ' + res.status);
+    const data = await res.json();
+    coins.forEach(c => {
+      const newPrice = data[c.id]?.usd ?? 0;
+      c.prices.push(newPrice);
+      if (c.prices.length > 10) c.prices.shift();
+      const pctChange = data[c.id]?.usd_24h_change ?? 0;
+      const el = document.getElementById(`pair-${c.id}`);
+      if (!el) return;
+      el.querySelector('[data-price]').textContent = newPrice.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+      const pctEl = el.querySelector('[data-pct]');
+      pctEl.textContent = `${pctChange>=0?'+':''}${pctChange.toFixed(2)}%`;
+      pctEl.className = 'pct ' + (pctChange>=0?'up':'down');
+      // update sparkline
+      try { c.chart.updateSeries([{ data: c.prices }]); } catch(e) { /* ignore chart update errors */ }
+    });
+  } catch(e) { console.error("Failed to fetch prices", e); }
+}
+
+function startPricePolling(intervalMs = 10000) {
+  // initial fetch
+  fetchPrices();
+  if (fetchInterval) clearInterval(fetchInterval);
+  fetchInterval = setInterval(fetchPrices, intervalMs);
+}
+function stopPricePolling() {
+  if (fetchInterval) { clearInterval(fetchInterval); fetchInterval = null; }
+}
+
+// pause when tab hidden
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) stopPricePolling();
+  else startPricePolling();
+});
+
+// start polling
+startPricePolling(10000);
+
+</script>
+</body>
+</html>

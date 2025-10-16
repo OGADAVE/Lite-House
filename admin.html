@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Admin Dashboard - Lite-House</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(135deg, #0a0f1f, #111c3a);
+      color: #fff;
+      margin: 0;
+      min-height: 100vh;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(6px);
+    }
+    header h1 {
+      font-size: 1.5rem;
+      color: #00e0ff;
+    }
+    header button {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #00e0ff, #0072ff);
+      color: #fff;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    header button:hover {
+      background: linear-gradient(135deg, #0072ff, #00e0ff);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .notif-bell {
+      position: relative;
+      font-size: 1.4rem;
+      cursor: pointer;
+    }
+    .notif-bell .badge {
+      position: absolute;
+      top: -6px;
+      right: -8px;
+      background: #f00;
+      color: #fff;
+      border-radius: 50%;
+      font-size: 10px;
+      padding: 2px 5px;
+    }
+    .notif-dropdown {
+      display: none;
+      position: absolute;
+      right: 2rem;
+      top: 60px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 10px;
+      backdrop-filter: blur(8px);
+      width: 260px;
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 20;
+    }
+    .notif-dropdown.active { display: block; }
+    .notif-item {
+      padding: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      font-size: 13px;
+    }
+    .notif-item:hover { background: rgba(0,224,255,0.1); 
+    }
+
+    main { padding: 2rem; }
+    section { margin-bottom: 2rem; }
+    h2 { color: #00e0ff; margin-bottom: 1rem; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      font-size: 14px;
+    }
+    th { background: rgba(255,255,255,0.1); }
+    tr:hover { background: rgba(0,224,255,0.1); }
+    button.action-btn { padding: 6px 10px; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; margin-right: 5px; }
+    button.approve { background: #0f0; color: #000; }
+    button.reject { background: #f00; color: #fff; }
+    button.deposit-btn { background: #00c6ff; color: #000; }
+
+    /* Summary Cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      transition: 0.3s;
+    }
+    .card:hover {
+      background: rgba(0,224,255,0.1);
+      transform: translateY(-3px);
+    }
+    .card i {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      color: #00e0ff;
+    }
+    .card h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      color: #ccc;
+    }
+    .card p {
+      margin-top: 6px;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    /* Run ROI Button */
+    .btn-run-roi {
+      display: inline-block;
+      margin-bottom: 1.5rem;
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #00e0ff, #0072ff);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: background 0.3s;
+    }
+
+    /* Loading Overlay */
+    #loading-overlay {
+      position: fixed; 
+      inset: 0;
+      background: rgba(10,15,36,0.85);
+      display: flex; 
+      flex-direction: column; 
+      justify-content: center; 
+      align-items: center;
+      z-index: 100; 
+      display: none;
+    }
+    .spinner {
+      border: 4px solid rgba(255,255,255,0.2);
+      border-top: 4px solid #00e0ff;
+      border-radius: 50%;
+      width: 50px; 
+      height: 50px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .loading-text { 
+        margin-top: 1rem; 
+        color: #c8d6e5; 
+        font-size: 1rem; 
+        font-weight: 600;
+    }
+
+    /* Confirmation Modal */
+    #confirm-modal, #deposit-modal, #message-modal {
+      position: fixed; 
+      inset: 0; 
+      background: rgba(0,0,0,0.7);
+      display: none; 
+      justify-content: center; 
+      align-items: center; 
+      z-index: 101;
+    }
+    #confirm-box, #deposit-box, #message-box {
+      background: rgba(255,255,255,0.08); 
+      padding: 2rem; 
+      border-radius: 12px;
+      text-align: center; 
+      backdrop-filter: blur(6px); 
+      width: 320px;
+    }
+    #confirm-box p, #deposit-box p, #message-box p { 
+      margin-bottom: 1.5rem; 
+      font-size: 1.1rem; 
+      font-weight: 600; 
+      color: #00e0ff;
+    }
+    #confirm-box input, #deposit-box input, #deposit-box textarea, #message-box input, #message-box textarea {
+      width: 80%; 
+      padding: 8px; 
+      border-radius: 8px; 
+      border: none; 
+      margin-bottom: 1rem;
+    }
+    #message-box textarea { height: 100px; resize: none; }
+
+    #confirm-box button, #deposit-box button, #message-box button { 
+        padding: 8px 14px; 
+        margin: 0 6px; 
+        border: none; 
+        border-radius: 8px; 
+        cursor: pointer; 
+        font-weight: 600;
+        font-size: 14px;
+        transition: 0.2s;
+        width: 100px;
+    }
+    #confirm-yes, #deposit-yes { background: #0f0; color:#000; margin-right: 10px; }
+    #confirm-no, #deposit-no { background: #f00; color:#fff; margin-left: 10px; }
+    #confirm-yes:hover { background: #0c0; }
+    #confirm-no:hover { background: #c00; }
+    #send-msg { background: #00c6ff; color:#000; margin-right: 10px; }
+    #cancel-msg { background: #f00; color:#fff; margin-left: 10px; }
+    #send-msg:hover { background: #0097e6; }
+    #cancel-msg:hover { background: #c00; }
+
+    /* Success Msg */
+    #success-msg {
+      position: fixed; 
+      top: 20px; 
+      right: 20px;
+      background: #0f0; 
+      color: #000;
+      padding: 10px 15px; 
+      border-radius: 8px;
+      display: none; 
+      font-weight: 600; 
+      z-index: 105;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <p class="loading-text" id="loading-text">Loading...</p>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirm-modal">
+    <div id="confirm-box">
+      <p id="confirm-msg">Are you sure?</p>
+      <button id="confirm-yes">Yes</button>
+      <button id="confirm-no">No</button>
+    </div>
+  </div>
+
+  <div id="deposit-modal">
+        <div id="deposit-box">
+            <p id="deposit-msg">Deposit amount to user@example.com</p>
+            <input type="number" id="deposit-amount-input" placeholder="Enter amount" />
+            <button id="deposit-yes">Deposit</button>
+            <button id="deposit-no">Cancel</button>
+        </div>
+    </div>
+
+  <!-- Message Modal -->
+  <div id="message-modal">
+    <div id="message-box">
+      <p id="message-to"></p>
+      <input type="text" id="msg-subject" placeholder="Subject" />
+      <textarea id="msg-body" placeholder="Type your message..."></textarea>
+      <button id="send-msg">Send</button>
+      <button id="cancel-msg">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Success Message -->
+  <div id="success-msg">Action successful!</div>
+
+  <header>
+    <h1>Admin Dashboard</h1>
+    <div class="header-right">
+      <div class="notif-bell" id="notifBell"><i class="fas fa-bell"></i><span class="badge" id="notifBadge">0</span></div>
+      <div class="notif-dropdown" id="notifDropdown"></div>
+      <button id="logoutBtn">Logout</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Dashboard Stats -->
+    <div class="stats-grid">
+      <div class="card"><i class="fas fa-users"></i><h3>Total Users</h3><p id="totalUsers">0</p></div>
+      <div class="card"><i class="fas fa-coins"></i><h3>Total Deposits</h3><p id="totalDeposits">$0</p></div>
+      <div class="card"><i class="fas fa-wallet"></i><h3>Total Balance</h3><p id="totalBalance">$0</p></div>
+      <div class="card"><i class="fas fa-hourglass-half"></i><h3>Pending Withdrawals</h3><p id="pendingWithdrawals">0</p></div>
+    </div>
+
+    <button id="runRoiBtn" class="btn-run-roi">💰 Run Daily ROI</button>
+
+    <section>
+      <h2>Users</h2>
+      <table id="usersTable">
+        <thead>
+          <tr><th>Email</th><th>Acct. Bal</th><th>Trading Bal</th><th>ROI Bal</th><th>Referral</th><th>Joined</th><th>Action</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Deposits</h2>
+      <table id="depositTable">
+        <thead>
+          <tr><th>Email</th><th>Amount</th><th>Processed At</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Withdrawals</h2>
+      <table id="withdrawalsTable">
+        <thead>
+          <tr><th>Email</th><th>Coin</th><th>Amount</th><th>Status</th><th>Actions</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+<script type="module" src="script/admin.js"></script>

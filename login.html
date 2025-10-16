@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lite-House | Login</title>
+  <style>
+    * { box-sizing: border-box; font-family: "Poppins", sans-serif; margin: 0; padding: 0; }
+    body {
+      background: linear-gradient(135deg, #0a0f24, #142850);
+      color: #fff; display: flex; align-items: center; justify-content: center; height: 100vh;
+    }
+    .auth-container {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      width: 380px; padding: 2rem; text-align: center;
+    }
+    h2 { font-size: 1.6rem; margin-bottom: 1.2rem; color: #f5f6fa; }
+    .input-group { margin-bottom: 1rem; text-align: left; }
+    label { display: block; margin-bottom: 6px; font-size: 0.9rem; color: #d1d8e0; }
+    input {
+      width: 100%; padding: 10px; border-radius: 8px; border: none;
+      background: rgba(255, 255, 255, 0.12); color: #fff; font-size: 1rem; outline: none;
+    }
+    input:focus { background: rgba(255, 255, 255, 0.2); }
+    button {
+      width: 100%; padding: 10px; border: none; border-radius: 8px;
+      background: linear-gradient(135deg, #00a8ff, #0097e6);
+      color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer;
+    }
+    button:hover { background: linear-gradient(135deg, #0097e6, #00a8ff); }
+    .toggle { margin-top: 1.2rem; font-size: 0.9rem; color: #c8d6e5; }
+    .toggle span { color: #00a8ff; cursor: pointer; font-weight: 600; }
+    .hidden { display: none; }
+    #loading-overlay {
+      position: fixed; inset: 0; background: rgba(10, 15, 36, 0.85);
+      display: none; flex-direction: column; justify-content: center; align-items: center;
+      z-index: 100;
+    }
+    .spinner {
+      border: 4px solid rgba(255, 255, 255, 0.2);
+      border-top: 4px solid #00a8ff;
+      border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .loading-text { margin-top: 1rem; font-size: 1rem; color: #c8d6e5; }
+    .error-text { color: #ff6b6b; font-size: 0.85rem; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="auth-container">
+    <div id="loading-overlay"><div class="spinner"></div><p class="loading-text">Processing...</p></div>
+
+    <h2>Welcome Back</h2>
+    <div class="input-group">
+      <label for="login-email">Email Address</label>
+      <input type="email" id="login-email" placeholder="Enter your email" />
+      <p class="error-text" id="login-email-error"></p>
+    </div>
+    <div class="input-group">
+      <label for="login-password">Password</label>
+      <input type="password" id="login-password" placeholder="Enter password" />
+      <p class="error-text" id="login-password-error"></p>
+    </div>
+    <button id="login-btn">Login</button>
+    <div class="toggle">
+      Forgot your password? <span id="forgot-toggle">Reset</span><br>
+      Don’t have an account? <a href="index.html"><span>Sign Up</span></a>
+    </div>
+  </div>
+
+  <script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAYpJh4hLwrXsFpKnnXi1e6wVstgitv5L0",
+  authDomain: "lite-house-b2139.firebaseapp.com",
+  projectId: "lite-house-b2139",
+  storageBucket: "lite-house-b2139.appspot.com",
+  messagingSenderId: "563490813811",
+  appId: "1:563490813811:web:1d3d83fb43db7be178f706",
+  measurementId: "G-5JF6YSRC9F"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+function showLoading(msg) {
+  document.getElementById("loading-overlay").style.display = "flex";
+  document.querySelector(".loading-text").textContent = msg;
+}
+function hideLoading() {
+  document.getElementById("loading-overlay").style.display = "none";
+}
+
+document.getElementById("login-btn").addEventListener("click", async () => {
+  const email = document.getElementById("login-email").value.trim();
+  const password = document.getElementById("login-password").value.trim();
+  document.getElementById("login-email-error").textContent = "";
+  document.getElementById("login-password-error").textContent = "";
+
+  if (!email) return document.getElementById("login-email-error").textContent = "Email is required";
+  if (!password) return document.getElementById("login-password-error").textContent = "Password is required";
+
+  showLoading("Logging in...");
+
+  try {
+    const userCred = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCred.user;
+
+    const userRef = doc(db, "users", user.uid);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      alert("User data not found.");
+      return;
+    }
+
+    const userData = userSnap.data();
+    
+    // Check isAdmin flag and redirect
+    if (userData.isAdmin === true) {
+      alert("Welcome Admin ✅");
+      window.location.href = "admin.html"; 
+        } else {
+      alert("Login Successful ✅");
+      window.location.href = "dashboard.html";
+    }
+
+  } catch (err) {
+    console.error(err);
+    alert(err.message);
+  } finally {
+    hideLoading();
+  }
+});
+
+// Forgot password
+document.getElementById("forgot-toggle").addEventListener("click", async () => {
+  const email = prompt("Enter your email to reset password:");
+  if (email) {
+    showLoading("Sending reset link...");
+    try {
+      await sendPasswordResetEmail(auth, email);
+      alert("Password reset link sent! Check your inbox.");
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      hideLoading();
+    }
+  }
+});
+</script>
+</body>
+</html>

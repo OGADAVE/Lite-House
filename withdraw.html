@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Withdraw | Lite-House</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(135deg, #0a0f1f, #111c3a);
+      color: #fff;
+      animation: gradientShift 10s ease infinite;
+      background-size: 400% 400%;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      position: relative;
+    }
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .back-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: #00c6ff;
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: 0.3s;
+      z-index: 10;
+    }
+    .back-btn:hover {
+      background: linear-gradient(135deg, #0072ff, #00c6ff);
+      transform: scale(1.05);
+    }
+    .withdraw-box {
+      background: rgba(255, 255, 255, 0.06);
+      padding: 35px;
+      border-radius: 18px;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.45);
+      width: 95%;
+      max-width: 420px;
+      text-align: center;
+      backdrop-filter: blur(6px);
+      transition: transform 0.2s ease;
+      position: relative;
+    }
+    .withdraw-box:hover { transform: translateY(-3px); }
+    h2 { color: #00e0ff; margin-bottom: 10px; letter-spacing: 0.5px; }
+    .balance { margin-bottom: 20px; font-size: 15px; color: #bfe9ff; }
+    select, input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: none;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      transition: 0.2s ease;
+    }
+    input::placeholder { color: #aaa; }
+    select:focus, input:focus { transform: scale(1.02); }
+    button {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #00e0ff, #0072ff);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: linear-gradient(135deg, #0072ff, #00e0ff);
+      box-shadow: 0 8px 24px rgba(0, 224, 255, 0.3);
+    }
+    .note { font-size: 13px; color: #bbb; margin-top: 12px; }
+    .success {
+      color: #0f0;
+      margin-top: 12px;
+      display: none;
+      font-size: 14px;
+    }
+
+    /* Loading Overlay */
+    #loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(10, 15, 36, 0.85);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border-radius: 18px;
+      z-index: 100;
+      display: none;
+    }
+    .spinner {
+      border: 4px solid rgba(255, 255, 255, 0.2);
+      border-top: 4px solid #00a8ff;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .loading-text { margin-top: 1rem; font-size: 1rem; color: #c8d6e5; }
+    .fee-info{font-size:13px;color:#aaa;margin-bottom:10px;text-align:left}
+  </style>
+</head>
+<body>
+
+<a href="dashboard.html" class="back-btn"><i class="fas fa-arrow-left"></i> Back</a>
+
+<div class="withdraw-box">
+  <h2>Withdraw Funds</h2>
+  <div class="balance">Available Balance: <span id="balance">Loading...</span> USDT</div>
+
+  <select id="coin">
+    <option value="">Select Crypto</option>
+    <option value="USDT (BEP20)">USDT (BEP20)</option>
+    <option value="Litecoin (LTC)">Litecoin (LTC)</option>
+    <option value="Solana (SOL)">Solana (SOL)</option>
+  </select>
+
+  <input type="text" id="address" placeholder="Enter Wallet Address" />
+  <input type="number" id="amount" placeholder="Enter Amount" step="0.01" />
+  <div class="fee-info" id="feeInfo">Fee: $0.00 | Total Deduction: $0.00</div>
+
+  <button id="withdrawBtn">Withdraw Now</button>
+  <div class="note">Withdrawals are processed within minutes. Minimum: $11, Fee: 5%</div>
+  <div id="successMsg" class="success">Withdrawal request submitted successfully!</div>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <p class="loading-text">Processing...</p>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, collection, addDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyAYpJh4hLwrXsFpKnnXi1e6wVstgitv5L0",
+  authDomain: "lite-house-b2139.firebaseapp.com",
+  projectId: "lite-house-b2139",
+  storageBucket: "lite-house-b2139.appspot.com",
+  messagingSenderId: "563490813811",
+  appId: "1:563490813811:web:1d3d83fb43db7be178f706",
+  measurementId: "G-5JF6YSRC9F"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const balanceEl = document.getElementById('balance');
+const withdrawBtn = document.getElementById('withdrawBtn');
+const successMsg = document.getElementById('successMsg');
+const loadingOverlay = document.getElementById('loading-overlay');
+const feeInfo = document.getElementById('feeInfo');
+
+let currentUser = null;
+let balance = 0;
+
+// Show/Hide Loading
+function showLoading() { loadingOverlay.style.display = "flex"; withdrawBtn.disabled = true; }
+function hideLoading() { loadingOverlay.style.display = "none"; withdrawBtn.disabled = false; }
+
+// Fetch balance
+onAuthStateChanged(auth, async (user) => {
+  if (!user) { window.location.href = "index.html"; return; }
+  currentUser = user;
+  const uRef = doc(db, "users", user.uid);
+  const docSnap = await getDoc(uRef);
+  if (docSnap.exists()) {
+    balance = docSnap.data().balance ?? 0;
+    balanceEl.textContent = balance.toFixed(2);
+  } else { balanceEl.textContent = "0.00"; }
+});
+
+// Update fee info dynamically
+document.getElementById('amount').addEventListener('input', () => {
+  const amt = parseFloat(document.getElementById('amount').value) || 0;
+  const fee = amt * 0.05;
+  const total = amt + fee;
+  feeInfo.textContent = `Fee: $${fee.toFixed(2)} | Total Deduction: $${total.toFixed(2)}`;
+});
+
+// Handle withdrawal
+withdrawBtn.addEventListener('click', async () => {
+  const coin = document.getElementById('coin').value.trim();
+  const address = document.getElementById('address').value.trim();
+  const amountInput = parseFloat(document.getElementById('amount').value);
+
+  if (!coin || !address || !amountInput) {
+    return alert("Please fill in all fields.");
+  }
+
+  if (amountInput <= 0) { return alert("Enter a valid amount."); }
+  if (amountInput < 11) { return alert("Minimum withdrawal is $11."); }
+  const fee = amountInput * 0.05;
+  const total = amountInput + fee;
+  if (total > balance) { return alert(`Insufficient balance. Your balance covers ${balance.toFixed(2)} USDT`); }
+
+  if(!confirm(`Confirm withdrawal of ${amountInput.toFixed(2)} ${coin} + 5% fee (${fee.toFixed(2)})?`)) return;
+
+  showLoading();
+
+  try {
+    await addDoc(collection(db, "withdrawals"), {
+      userId: currentUser.uid,
+      email: currentUser.email,
+      coin,
+      address,
+      amount: amountInput,
+      fee: fee,
+      totalAmountDeducted: total,
+      status: "pending",
+      timestamp: serverTimestamp()
+    });
+
+    // Deduct balance locally and update Firestore
+    balance -= total;
+    balanceEl.textContent = balance.toFixed(2);
+    await updateDoc(doc(db, "users", currentUser.uid), { balance });
+
+    // Show success
+    successMsg.style.display = "block";
+    setTimeout(() => { successMsg.style.display = "none"; }, 4000);
+
+    // Reset form
+    document.getElementById('coin').value = '';
+    document.getElementById('address').value = '';
+    document.getElementById('amount').value = '';
+
+  } catch (err) {
+    console.error(err);
+    alert(err.message || "Something went wrong. Try again.");
+  } finally {
+    hideLoading();
+  }
+});
+</script>
+</body>
+</html>

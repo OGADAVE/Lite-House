@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>User Profile | Lite-House</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+body {
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(135deg, #0a0f1f, #111c3a);
+  color: #fff;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+.back-btn {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: 0.3s;
+}
+.back-btn:hover {
+  background: linear-gradient(135deg, #0072ff, #00c6ff);
+  transform: scale(1.05);
+}
+.container {
+  max-width: 600px;
+  margin: 70px auto;
+  padding: 25px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 14px;
+  box-shadow: 0 0 25px rgba(0,0,0,0.4);
+}
+h2 {
+  text-align: center;
+  color: #00e0ff;
+  margin-bottom: 25px;
+}
+.profile-section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.profile-item label {
+  display: block;
+  color: #bbb;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+.profile-item input {
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+}
+.profile-item input:disabled {
+  opacity: 0.7;
+}
+
+#wallet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+.wallet-entry {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255,255,255,0.1);
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+.wallet-entry span {
+  font-size: 14px;
+  color: #fff;
+}
+.wallet-entry button {
+  background: #ff4b4b;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.wallet-entry button:hover {
+  background: #d32f2f;
+}
+.add-wallet {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 10px;
+}
+.add-wallet input, .add-wallet select {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+.add-wallet button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.add-wallet button:hover {
+  background: #0056b3;
+}
+
+.btn {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  text-align: center;
+  border: none;
+  border-radius: 10px;
+  background: #00e0ff;
+  color: #0a0f1f;
+  font-weight: 600;
+  margin-top: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn:hover { background: #00bcd4; }
+.btn.logout { background: #f44336; color: #fff; }
+.btn.logout:hover { background: #d32f2f; }
+.status-msg {
+  text-align: center;
+  margin-top: 10px;
+  color: #8bc34a;
+  font-size: 14px;
+}
+/* Footer */
+.footer {
+  height:76px;
+  background:#0b0b0b;
+  border-top:1px solid rgba(255,255,255,0.06);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 22px;
+  gap:12px;
+  margin-top:auto;
+}
+.footer p { color:#bfc9cc; font-size:13px; }
+.social-icons a {
+  color:#00c6ff;
+  margin-left:10px;
+  text-decoration:none;
+  font-size:18px;
+  display:inline-block;
+}
+.social-icons a:hover { color:#25d366; }
+
+</style>
+</head>
+<body>
+
+<a href="dashboard.html" class="back-btn"><i class="fas fa-arrow-left"></i> Back</a>
+
+<div class="container">
+  <h2><i class="fas fa-user-circle"></i> My Profile</h2>
+
+  <div class="profile-section">
+    <div class="profile-item">
+      <label>Full Name</label>
+      <input type="text" id="fullname" disabled>
+    </div>
+
+    <div class="profile-item">
+      <label>Email</label>
+      <input type="text" id="email" disabled>
+    </div>
+
+    <div class="profile-item">
+      <label>Wallet Addresses</label>
+      <div id="wallet-list"></div>
+      <div class="add-wallet">
+        <select id="wallet-type">
+          <option value="USDT (BEP20)">USDT (BEP20)</option>
+          <option value="Bitcoin (BTC)">Bitcoin (BTC)</option>
+          <option value="Litecoin (LTC)">Litecoin (LTC)</option>
+          <option value="Solana (SOL)">Solana (SOL)</option>
+        </select>
+        <input type="text" id="wallet-address-input" placeholder="Enter wallet address">
+        <button id="add-wallet-btn">Add</button>
+      </div>
+    </div>
+
+    <div class="profile-item">
+      <label>Joined On</label>
+      <input type="text" id="joined" disabled>
+    </div>
+  </div>
+
+  <button id="saveBtn" class="btn">Save Changes</button>
+  <button id="resetPasswordBtn" class="btn">Reset Password</button>
+  <button id="logoutBtn" class="btn logout">Logout</button>
+  <div class="status-msg" id="statusMsg"></div>
+</div>
+
+  <footer class="footer">
+    <p>© 2025 Lite-House Inc. All rights reserved.</p>
+    <div class="social-icons">
+      <a href="#" title="Telegram"><i class="fab fa-telegram-plane"></i></a>
+      <a href="#" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+    </div>
+  </footer>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyAYpJh4hLwrXsFpKnnXi1e6wVstgitv5L0",
+  authDomain: "lite-house-b2139.firebaseapp.com",
+  projectId: "lite-house-b2139",
+  storageBucket: "lite-house-b2139.appspot.com",
+  messagingSenderId: "563490813811",
+  appId: "1:563490813811:web:1d3d83fb43db7be178f706",
+  measurementId: "G-5JF6YSRC9F"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser = null;
+let userWallets = [];
+
+const fullname = document.getElementById("fullname");
+const email = document.getElementById("email");
+const joined = document.getElementById("joined");
+const saveBtn = document.getElementById("saveBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+const resetPasswordBtn = document.getElementById("resetPasswordBtn");
+const statusMsg = document.getElementById("statusMsg");
+const walletList = document.getElementById("wallet-list");
+const walletTypeSelect = document.getElementById("wallet-type");
+const walletAddressInput = document.getElementById("wallet-address-input");
+const addWalletBtn = document.getElementById("add-wallet-btn");
+
+// Render all wallets
+function renderWallets() {
+  walletList.innerHTML = "";
+
+  if (userWallets.length === 0) {
+    walletList.innerHTML = `<p style="color:#bbb;">No wallet addresses added yet.</p>`;
+    return;
+  }
+
+  userWallets.forEach((wallet, index) => {
+    const div = document.createElement("div");
+    div.className = "wallet-entry";
+    div.innerHTML = `
+      <span><b>${wallet.type}:</b> ${wallet.address}</span>
+      <button data-index="${index}" class="remove-wallet"><i class="fas fa-trash"></i></button>
+    `;
+    walletList.appendChild(div);
+  });
+
+  document.querySelectorAll(".remove-wallet").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      const index = e.target.closest("button").dataset.index;
+      userWallets.splice(index, 1);
+      await saveWallets();
+      renderWallets();
+    });
+  });
+}
+
+// Save wallets to Firestore
+async function saveWallets() {
+  if (!currentUser) return;
+  const userRef = doc(db, "users", currentUser.uid);
+  await updateDoc(userRef, { wallets: userWallets });
+}
+
+// Add new wallet
+addWalletBtn.addEventListener("click", async () => {
+  const type = walletTypeSelect.value;
+  const address = walletAddressInput.value.trim();
+  if (!address) return alert("Please enter a wallet address");
+
+  userWallets.push({ type, address });
+  await saveWallets();
+  renderWallets();
+  walletAddressInput.value = "";
+  alert("Wallet added successfully!");
+});
+
+// Load user data
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = "index.html";
+    return;
+  }
+
+  currentUser = user;
+  const userRef = doc(db, "users", user.uid);
+  const snap = await getDoc(userRef);
+
+  if (snap.exists()) {
+    const data = snap.data();
+    fullname.value = data.fullname || "Not set";
+    email.value = user.email;
+    userWallets = data.wallets || [];
+    renderWallets();
+    joined.value = data.createdAt
+      ? new Date(data.createdAt.toDate()).toLocaleDateString()
+      : "N/A";
+  }
+});
+
+// Save general profile changes (for future editable fields)
+saveBtn.addEventListener("click", async () => {
+  statusMsg.textContent = "Profile updated successfully!";
+  statusMsg.style.color = "#8bc34a";
+});
+
+// Reset password
+resetPasswordBtn.addEventListener("click", async () => {
+  const user = auth.currentUser;
+  if (!user) return;
+  try {
+    await sendPasswordResetEmail(auth, user.email);
+    statusMsg.textContent = "Password reset email sent!";
+    statusMsg.style.color = "#8bc34a";
+  } catch (error) {
+    statusMsg.textContent = "Error sending reset email.";
+    statusMsg.style.color = "#f44336";
+  }
+});
+
+// Logout
+logoutBtn.addEventListener("click", async () => {
+  await signOut(auth);
+  window.location.href = "login.html";
+});
+</script>
+
+</body>
+</html>

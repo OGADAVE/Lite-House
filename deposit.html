@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Deposit - Lite-House</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:"Poppins","Segoe UI",sans-serif;
+    height:100%;
+  display:flex;
+  background: linear-gradient(135deg, #0a0f1f, #111c3a);
+  color: #fff;
+  background-size:400% 400%;
+  animation:gradientShift 10s ease infinite;
+}
+@keyframes gradientShift{
+  0%{background-position:0% 50%;}
+  50%{background-position:100% 50%;}
+  100%{background-position:0% 50%;}
+}
+.brand{
+    text-align:center;
+    color:#00e0ff;
+    font-weight:700;
+    font-size:22px;
+    margin-bottom:22px;
+}
+
+.back-btn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: #00c6ff;
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: 0.3s;
+    }
+
+    .back-btn:hover {
+      background: linear-gradient(135deg, #0072ff, #00c6ff);
+      transform: scale(1.05);
+    }
+
+.main-content{
+    margin-left:240px;
+    flex:1;
+    padding:30px;
+    overflow:auto;
+}
+h2{
+    color:#00e0ff;
+    margin-bottom:20px;
+    text-align: center;
+}
+.card{
+  background:rgba(255,255,255,0.07);
+  border-radius:16px;
+  padding:24px;
+  margin-bottom:20px;
+  box-shadow:0 12px 35px rgba(0,0,0,0.4);
+  backdrop-filter:blur(5px);
+  transition:transform .2s ease;
+}
+.card:hover{transform:translateY(-4px);}
+.card input,.card select{
+  width:100%;
+  padding:12px 14px;
+  border-radius:12px;
+  border:none;
+  margin-top:10px;
+  font-size:14px;
+  color:#00e0ff;
+  background:rgba(255,255,255,0.1);
+  box-shadow:0 4px 12px rgba(0,0,0,0.25);
+}
+.card input:focus,.card select:focus{
+    outline:none;
+    transform:scale(1.02);
+    transition:all .2s ease;
+    box-shadow:0 6px 18px rgba(0,0,0,0.35);
+}
+.btn{
+  display:flex; 
+  justify-content:center; 
+  align-items:center;
+  margin-top:16px;
+    padding:12px 0;
+  border-radius:12px;
+  background:#00c6ff;
+  color:#fff;
+  border:none;
+  cursor:pointer;
+  font-weight:700;
+  transition:all .2s ease;
+    box-shadow:0 4px 12px rgba(0,224,255,0.3);
+    font-size:14px;
+    width:100%;
+    text-align:center;
+
+}
+.btn:hover{box-shadow:0 8px 24px rgba(0,224,255,0.4);transform:translateY(-2px);}
+.balance-display{font-size:16px;margin-bottom:12px;color:#bfe9ff;}
+.crypto-address{
+  font-family:monospace;
+  background:rgba(255,255,255,0.1);
+  padding:10px;
+  border-radius:10px;
+  margin-top:10px;
+  word-break:break-all;
+}
+.footer {
+  position:absolute; 
+  left:0; 
+  right:0; 
+  bottom:0; 
+  height:050px;
+  background:#0b0b0b; 
+  border-top:1px solid rgba(255,255,255,0.04);
+  display:flex; 
+  align-items:center; 
+  justify-content:space-between;
+    padding:12px 22px;
+  gap:12px; 
+  z-index:100;
+}
+.footer p { color:#bfc9cc; font-size:13px; }
+.social-icons a { color:#00c6ff; margin-left:10px; text-decoration:none; font-size:18px; display:inline-block; }
+.social-icons a:hover { color:#25d366; }
+
+#qrcode{
+  margin-top:20px;
+  display:flex;
+  justify-content:center;
+  animation:pulseGlow 3s infinite ease-in-out;
+}
+@keyframes pulseGlow{
+  0%{filter:drop-shadow(0 0 0px #00e0ff);}
+  50%{filter:drop-shadow(0 0 12px #00e0ff);}
+  100%{filter:drop-shadow(0 0 0px #00e0ff);}
+}
+
+@media (max-width: 768px) {
+  .main-content { margin-left:0; width:100%; }
+  .footer { position: relative; left:0; width:100%; }
+}
+</style>
+</head>
+<body>
+
+<a href="dashboard.html" class="back-btn"><i class="fas fa-arrow-left"></i> Back</a>
+
+<div class="main-content">
+  <h2>Deposit Funds</h2>
+
+  <div class="card">
+    <div class="balance-display"><strong>Current Balance:</strong> <span id="balance">0</span> USDT</div>
+
+    <label for="crypto">Select Cryptocurrency</label>
+    <select id="crypto">
+      <option value="usdt">USDT (BEP20)</option>
+      <option value="btc">Bitcoin (BTC)</option>
+      <option value="ltc">Litecoin (LTC)</option>
+      <option value="sol">Solana (SOL)</option>
+    </select>
+
+    <label>Deposit Wallet Address</label>
+    <input type="text" id="walletAddress" readonly class="crypto-address" value="Select a crypto to see address"/>
+
+    <div id="qrcode"></div>
+
+    <button class="btn" id="copyBtn">Copy Address</button>
+    <button class="btn" id="completedBtn">Deposit Completed</button>
+  </div>
+
+  <footer class="footer">
+    <p>© 2025 Lite-House Inc. All rights reserved.</p>
+    <div class="social-icons">
+      <a href="#" title="Telegram"><i class="fab fa-telegram-plane"></i></a>
+      <a href="#" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+    </div>
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyAYpJh4hLwrXsFpKnnXi1e6wVstgitv5L0",
+  authDomain: "lite-house-b2139.firebaseapp.com",
+  projectId: "lite-house-b2139",
+  storageBucket: "lite-house-b2139.appspot.com",
+  messagingSenderId: "563490813811",
+  appId: "1:563490813811:web:1d3d83fb43db7be178f706",
+  measurementId: "G-5JF6YSRC9F"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const balanceEl = document.getElementById('balance');
+const cryptoSelect = document.getElementById('crypto');
+const walletAddressEl = document.getElementById('walletAddress');
+const copyBtn = document.getElementById('copyBtn');
+const completedBtn = document.getElementById('completedBtn');
+const qrcodeEl = document.getElementById('qrcode');
+
+let currentUser = null;
+
+// Wallet Addresses
+const wallets = {
+  usdt: "0x0bda56de19824bf98bed3c3338896c2dec41e18e",
+  btc: "bc1qbtcwalletaddressxyz",
+  ltc: "ltcwalletaddressxyz",
+  sol: "solwalletaddressxyz"
+};
+
+// QR Code Initialization
+let qrCode = new QRCode(qrcodeEl, {
+  text: "Select a crypto to see QR",
+  width: 160,
+  height: 160,
+  colorDark: "#00e0ff",
+  colorLight: "#1e3c72",
+  correctLevel: QRCode.CorrectLevel.H
+});
+
+// Load user balance
+onAuthStateChanged(auth, async (user) => {
+  if (!user) { window.location.href = "index.html"; return; }
+  currentUser = user;
+  const uRef = doc(db, "users", user.uid);
+  const docSnap = await getDoc(uRef);
+  if (docSnap.exists()) balanceEl.textContent = (docSnap.data().balance ?? 0).toFixed(2);
+});
+
+// Update wallet & QR code
+function updateWallet(crypto){
+  const address = wallets[crypto] || "Address not available";
+  walletAddressEl.value = address;
+  qrCode.clear();
+  qrCode.makeCode(address);
+}
+updateWallet(cryptoSelect.value);
+cryptoSelect.addEventListener('change', (e)=>updateWallet(e.target.value));
+
+// Copy wallet
+copyBtn.addEventListener('click', async ()=>{
+  try {
+    await navigator.clipboard.writeText(walletAddressEl.value);
+    copyBtn.textContent="Copied!";
+    setTimeout(()=>copyBtn.textContent="Copy Address",1200);
+  } catch {
+    alert("Copy failed — please copy manually.");
+  }
+});
+
+// Deposit completed
+completedBtn.addEventListener('click', async ()=>{
+  if (!currentUser) { alert("User not logged in"); return; }
+  const crypto = cryptoSelect.value;
+  const address = wallets[crypto];
+  if (!address) return alert("Select a crypto first");
+
+  try {
+    await addDoc(collection(db, "deposits"), {
+      userId: currentUser.uid,
+      email: currentUser.email,
+      crypto: crypto.toUpperCase(),
+      address: address,
+      status: "pending",
+      timestamp: new Date().toISOString()
+    });
+    alert("Deposit submitted successfully. Await admin approval.");
+  } catch (err) {
+    console.error(err);
+    alert("Failed to record deposit. Try again.");
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Transaction History | Lite-House</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<style>
+body {
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(135deg, #0a0f1f, #111c3a);
+  color: #fff;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.back-btn {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: #00c6ff;
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: 0.3s;
+}
+.back-btn:hover {
+  background: linear-gradient(135deg, #0072ff, #00c6ff);
+  transform: scale(1.05);
+}
+
+.container {
+  max-width: 900px;
+  margin: 60px auto;
+  padding: 20px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 14px;
+  box-shadow: 0 0 30px rgba(0,0,0,0.4);
+}
+h2 {
+  text-align: center;
+  color: #00e0ff;
+  margin-bottom: 20px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  color: #fff;
+}
+thead {
+  background: rgba(255,255,255,0.1);
+}
+th, td {
+  padding: 14px 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  font-size: 14px;
+}
+tr:hover {
+  background: rgba(255,255,255,0.08);
+}
+.status {
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-transform: capitalize;
+  font-size: 13px;
+}
+.status.pending { background: #ff98002b; color: #ffb74d; }
+.status.approved { background: #00c8532b; color: #69f0ae; }
+.status.failed { background: #f443362b; color: #ef9a9a; }
+.badge-deposit { color: #00e0ff; font-weight: bold; }
+.badge-withdrawal { color: #ff5252; font-weight: bold; }
+.no-data {
+  text-align: center;
+  padding: 40px;
+  color: #bbb;
+  font-size: 15px;
+}
+</style>
+</head>
+<body>
+
+<a href="dashboard.html" class="back-btn"><i class="fas fa-arrow-left"></i> Back</a>
+
+<div class="container">
+  <h2><i class="fas fa-history"></i> Transaction History</h2>
+  <table id="historyTable">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Coin</th>
+        <th>Address</th>
+        <th>Amount</th>
+        <th>Status</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody id="historyBody">
+      <tr><td colspan="6" class="no-data">Loading transactions...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { 
+  getFirestore, 
+  collection, 
+  query, 
+  where, 
+  onSnapshot, 
+  orderBy 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyAYpJh4hLwrXsFpKnnXi1e6wVstgitv5L0",
+  authDomain: "lite-house-b2139.firebaseapp.com",
+  projectId: "lite-house-b2139",
+  storageBucket: "lite-house-b2139.appspot.com",
+  messagingSenderId: "563490813811",
+  appId: "1:563490813811:web:1d3d83fb43db7be178f706",
+  measurementId: "G-5JF6YSRC9F"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const historyBody = document.getElementById('historyBody');
+
+// Format date/time
+function formatDate(timestamp) {
+  if (!timestamp) return "N/A";
+  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+  return date.toLocaleString();
+}
+
+// Combine and render transactions
+function renderTransactions(transactions) {
+  if (transactions.length === 0) {
+    historyBody.innerHTML = `<tr><td colspan="6" class="no-data">No transactions found yet.</td></tr>`;
+    return;
+  }
+
+  // Sort latest first
+  transactions.sort((a, b) => {
+    const ta = a.timestamp?.toMillis ? a.timestamp.toMillis() : new Date(a.timestamp).getTime();
+    const tb = b.timestamp?.toMillis ? b.timestamp.toMillis() : new Date(b.timestamp).getTime();
+    return tb - ta;
+  });
+
+  historyBody.innerHTML = transactions.map(tx => `
+    <tr>
+      <td class="${tx.type === 'Deposit' ? 'badge-deposit' : 'badge-withdrawal'}">${tx.type}</td>
+      <td>${tx.coin}</td>
+      <td>${tx.address}</td>
+      <td>${tx.amount}</td>
+      <td><span class="status ${tx.status.toLowerCase()}">${tx.status}</span></td>
+      <td>${formatDate(tx.timestamp)}</td>
+    </tr>
+  `).join('');
+}
+
+// Real-time listener setup
+onAuthStateChanged(auth, (user) => {
+  if (!user) { window.location.href = "login.html"; return; }
+
+  const depositsQuery = query(
+    collection(db, "deposits"),
+    where("uid", "==", user.uid)
+  );
+  const withdrawalsQuery = query(
+    collection(db, "withdrawals"),
+    where("uid", "==", user.uid)
+  );
+
+  let allTransactions = [];
+
+  const updateAndRender = () => renderTransactions(allTransactions);
+
+  onSnapshot(depositsQuery, (snapshot) => {
+    allTransactions = allTransactions.filter(t => t.type !== 'Deposit');
+    snapshot.forEach(doc => {
+      const d = doc.data();
+      allTransactions.push({
+        type: "Deposit",
+        coin: d.crypto || "USDT",
+        address: d.address || "-",
+        amount: d.amount || "-",
+        status: d.status || "pending",
+        timestamp: d.timestamp
+      });
+    });
+    updateAndRender();
+  });
+
+  onSnapshot(withdrawalsQuery, (snapshot) => {
+    allTransactions = allTransactions.filter(t => t.type !== 'Withdrawal');
+    snapshot.forEach(doc => {
+      const w = doc.data();
+      allTransactions.push({
+        type: "Withdrawal",
+        coin: w.coin || "USDT",
+        address: w.address || "-",
+        amount: w.amount || "-",
+        status: w.status || "pending",
+        timestamp: w.timestamp
+      });
+    });
+    updateAndRender();
+  });
+});
+</script>
+</body>
+</html>
